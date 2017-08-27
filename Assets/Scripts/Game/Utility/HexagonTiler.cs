@@ -99,12 +99,17 @@ namespace Game.Utility
             {
                 hex.Refresh();
                 hex.TargetHeight = FarHeight;
+                hex.State = HexagonState.Falling;
                 foreach (var riser in _risers)
                 {
                     var dist = DistanceSquare(hex.Position, riser.Location);
                     hex.TargetHeight = Mathf.Max(hex.TargetHeight,
                         Mathf.Lerp(CloseHeight, FarHeight, HeightCurve.Evaluate(Mathf.Min(1, dist / Radius))));
-                    hex.CurrentSource = riser.Source;
+                    if (dist < Radius)
+                    {
+                        hex.CurrentSource = riser.Source;
+                        hex.State = HexagonState.Rising;
+                    }
                 }
                 hex.Refresh();
             }
