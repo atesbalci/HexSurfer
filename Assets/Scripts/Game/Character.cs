@@ -7,7 +7,9 @@ namespace Game
 {
     public class Character : MonoBehaviour
     {
-        public Color Color;
+        public static readonly Color[] Colors = { Color.red, Color.green };
+
+        public int Id;
         public Transform BoardPivot;
 
         [Space(10)]
@@ -30,7 +32,8 @@ namespace Game
                     }
                     _currentRiser = new HexRiser
                     {
-                        Location = value.Position
+                        Location = value.Position,
+                        Source = Id
                     };
                     Hexagons.AddHexRiser(_currentRiser);
                 }
@@ -57,7 +60,6 @@ namespace Game
                 targetRot = Quaternion.LookRotation(ray.GetPoint(hitDist) - transform.position, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, Time.deltaTime * 200);
             }
-            transform.position += transform.forward * Time.deltaTime * 10;
             var targetRotY = targetRot.eulerAngles.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;
@@ -81,6 +83,10 @@ namespace Game
                 LayerMask.GetMask("Hexagon")))
             {
                 CurrentHexagon = hit.transform.GetComponent<Hexagon>();
+            }
+            if (Input.GetKey(KeyCode.Mouse0))
+            {
+                transform.position += transform.forward * Time.deltaTime * 10;
             }
         }
     }

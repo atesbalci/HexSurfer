@@ -7,10 +7,12 @@ namespace Game.Utility
     {
         public bool Active { get; set; }
         public Vector3 Location { get; set; }
+        public int Source { get; set; }
 
         public HexRiser()
         {
             Active = true;
+            Source = -1;
         }
     }
 
@@ -52,6 +54,7 @@ namespace Game.Utility
                 newHex.gameObject.name = "Hex";
                 midLine.Add(newHex);
                 hexagons.Add(newHex);
+                newHex.DefaultHeight = FarHeight;
                 newHex.Init();
             }
             var xshift = Mathf.Cos(Mathf.PI / 3) * HexSpacing + HexSpacing;
@@ -68,6 +71,7 @@ namespace Game.Utility
                         new Vector3(i % 4 < 2 ? xshift : 0, 0, (i % 2 == 0 ? 1 : -1) * heightMult * zshift);
                     newHex.gameObject.name = "Hex";
                     hexagons.Add(newHex);
+                    newHex.DefaultHeight = FarHeight;
                     newHex.Init();
                 }
             }
@@ -100,6 +104,7 @@ namespace Game.Utility
                     var dist = DistanceSquare(hex.Position, riser.Location);
                     hex.TargetHeight = Mathf.Max(hex.TargetHeight,
                         Mathf.Lerp(CloseHeight, FarHeight, HeightCurve.Evaluate(Mathf.Min(1, dist / Radius))));
+                    hex.CurrentSource = riser.Source;
                 }
                 hex.Refresh();
             }
