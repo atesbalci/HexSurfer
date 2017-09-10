@@ -92,7 +92,7 @@ namespace Game
             }
             var pos = transform.position;
             pos.y = _defaultY;
-            if (transform.position.y - 0.2f < _defaultY)
+            if (transform.position.y - 0.2f < _defaultY && _body.velocity.y <= 0)
             {
                 _body.velocity = Vector3.zero;
                 MidAir = false;

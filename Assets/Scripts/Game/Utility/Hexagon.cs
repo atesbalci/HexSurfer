@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace Game.Utility
 {
@@ -8,19 +9,41 @@ namespace Game.Utility
     }
     public class Hexagon : MonoBehaviour
     {
+        public float RiseSpeed;
+        public float FallSpeed;
+        public AnimationCurve ColorFadeCurve;
+        public float FadeDuration;
+
         public float TargetHeight { get; set; }
         public Transform Trans { get; set; }
         public Vector3 Position { get; set; }
         public float DefaultHeight { get; set; }
-        public HexagonState State;
-
-        public float RiseSpeed;
-        public float FallSpeed;
 
         private float _currentHeight;
         private int _currentSource;
-        private Material _defaultMaterial;
         private Renderer _rend;
+        private MaterialPropertyBlock _prop;
+        private Color _defCol;
+        private Color _col;
+        private HexagonState _state;
+        private float _fade;
+
+        public HexagonState State
+        {
+            get { return _state; }
+            set
+            {
+                if(State != value)
+                {
+                    if (value == HexagonState.Idle)
+                    {
+                        _prop.Clear();
+                        _rend.SetPropertyBlock(_prop);
+                    }
+                }
+                _state = value;
+            }
+        }
 
         public int CurrentSource
         {
@@ -29,13 +52,12 @@ namespace Game.Utility
             {
                 if (value != CurrentSource)
                 {
-                    if (value == -1)
+                    if(value > -1)
                     {
-                        _rend.sharedMaterial = _defaultMaterial;
-                    }
-                    else
-                    {
-                        _rend.material.color = Character.Colors[value];
+                        _col = Character.Colors[value];
+                        _prop.SetColor("_Color", _col);
+                        _rend.SetPropertyBlock(_prop);
+                        _fade = 0;
                     }
                 }
                 _currentSource = value;
@@ -49,9 +71,11 @@ namespace Game.Utility
             _currentHeight = Trans.localScale.y;
             Position = Trans.position;
             _rend = GetComponentInChildren<Renderer>();
-            _defaultMaterial = _rend.sharedMaterial;
             _currentSource = -1;
+            _prop = new MaterialPropertyBlock();
+            _defCol = _rend.sharedMaterial.color;
             State = HexagonState.Falling;
+            _fade = FadeDuration;
         }
 
         public void Refresh()
@@ -69,6 +93,21 @@ namespace Game.Utility
                         CurrentSource = -1;
                     }
                 }
+                if (Mathf.Abs(TargetHeight - _currentHeight) < 2)
+                {
+                }
+            }
+            if (_fade < FadeDuration)
+            {
+                _fade += Time.deltaTime;
+                _col = Color.Lerp(_col, _defCol, ColorFadeCurve.Evaluate(_fade / FadeDuration));
+                _prop.SetColor("_Color", _col);
+                if (_fade >= FadeDuration)
+                {
+                    _col = _defCol;
+                    _prop.Clear();
+                }
+                _rend.SetPropertyBlock(_prop);
             }
         }
     }
