@@ -12,6 +12,8 @@ namespace Game
         public int Id;
         public Transform BoardPivot;
         public TrailRenderer Trail;
+        public AnimationCurve JumpCurve;
+        public float JumpDuration;
 
         [Space(10)]
         public HexagonTiler Hexagons;
@@ -45,14 +47,12 @@ namespace Game
             }
         }
 
-        public bool MidAir { get; set; }
-
         private float _defaultY;
-        private Rigidbody _body;
         private Hexagon _currentHexagon;
         private HexRiser _currentRiser;
         private Plane _plane;
         private Material _trailMat;
+        private float _jumpProgress;
 
         private KeyCode _left;
         private KeyCode _right;
@@ -73,10 +73,9 @@ namespace Game
                 _right = KeyCode.RightArrow;
                 _jump = KeyCode.RightControl;
             }
-            MidAir = false;
             _defaultY = transform.position.y;
-            _body = GetComponent<Rigidbody>();
             _trailMat = Trail.material;
+            _jumpProgress = JumpDuration;
         }
 
         private void Update()
@@ -92,27 +91,30 @@ namespace Game
             }
             var pos = transform.position;
             pos.y = _defaultY;
-            if (transform.position.y - 0.2f < _defaultY && _body.velocity.y <= 0)
+            if (_jumpProgress < JumpDuration)
             {
-                _body.velocity = Vector3.zero;
-                MidAir = false;
+                _jumpProgress += Time.deltaTime;
+                var y = _defaultY + JumpCurve.Evaluate(_jumpProgress / JumpDuration);
+                if (_jumpProgress >= JumpDuration)
+                {
+                    y = _defaultY;
+                }
+                transform.position = new Vector3(transform.position.x, y, transform.position.z);
             }
-            transform.position = Vector3.MoveTowards(transform.position, pos, Time.deltaTime * 10);
-            if (Input.GetKeyDown(_jump) && !MidAir)
+            else if (Input.GetKeyDown(_jump))
             {
-                _body.velocity += Vector3.up * 15;
-                MidAir = true;
+                _jumpProgress = 0;
             }
             transform.position += transform.forward * Time.deltaTime * 10;
             var targetRotY = targetRot.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;
             var speed = 5f;
-            if (targetRotY - curRotY < -0.1f && !MidAir)
+            if (targetRotY - curRotY < -0.1f && _jumpProgress >= JumpDuration)
             {
                 modelTargetRot = Quaternion.Euler(0, 0, 60);
             }
-            else if (targetRotY - curRotY > 0.1f && !MidAir)
+            else if (targetRotY - curRotY > 0.1f && _jumpProgress >= JumpDuration)
             {
                 modelTargetRot = Quaternion.Euler(0, 0, -60);
             }
@@ -126,10 +128,11 @@ namespace Game
             if (Physics.Raycast(new Ray(transform.position, Vector3.down), out hit, 100f,
                 LayerMask.GetMask("Hexagon")))
             {
-                CurrentHexagon = !MidAir ? hit.transform.GetComponent<Hexagon>() : null;
+                CurrentHexagon = _jumpProgress >= JumpDuration ? hit.transform.GetComponent<Hexagon>() : null;
             }
             var trailColor = _trailMat.GetColor("_TintColor");
-            _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, MidAir ? 1 : 0, Time.deltaTime * 20)));
+            _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, 
+                _jumpProgress >= JumpDuration? 1 : 0, Time.deltaTime * 20)));
         }
     }
 }
