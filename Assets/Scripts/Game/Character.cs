@@ -8,12 +8,17 @@ namespace Game
     public class Character : MonoBehaviour
     {
         public static readonly Color[] Colors = { Color.red, Color.green };
+        public const float Speed = 10;
+        public const float BoostedSpeed = 15;
+        public const float Acceleration = 10;
 
         public int Id;
         public Transform BoardPivot;
         public TrailRenderer Trail;
         public AnimationCurve JumpCurve;
         public float JumpDuration;
+
+        public Energy Energy { get; set; }
 
         [Space(10)]
         public HexagonTiler Hexagons;
@@ -53,10 +58,12 @@ namespace Game
         private Plane _plane;
         private Material _trailMat;
         private float _jumpProgress;
+        private float _curSpeed;
 
         private KeyCode _left;
         private KeyCode _right;
         private KeyCode _jump;
+        private KeyCode _boost;
 
         private void Start()
         {
@@ -66,21 +73,27 @@ namespace Game
                 _left = KeyCode.A;
                 _right = KeyCode.D;
                 _jump = KeyCode.Space;
+                _boost = KeyCode.LeftShift;
             }
             else
             {
                 _left = KeyCode.LeftArrow;
                 _right = KeyCode.RightArrow;
                 _jump = KeyCode.RightControl;
+                _boost = KeyCode.RightShift;
             }
             _defaultY = transform.position.y;
             _trailMat = Trail.material;
             _jumpProgress = JumpDuration;
+            _curSpeed = 0;
+            Energy = new Energy();
         }
 
         private void Update()
         {
+            Energy.Update(Time.deltaTime);
             var targetRot = transform.eulerAngles;
+            var boosting = false;
             if (Input.GetKey(_left) || Input.GetKey(_right))
             {
                 float hitDist;
@@ -89,8 +102,6 @@ namespace Game
                 targetRot += Vector3.up * (60 * (Input.GetKey(_right) ? 1 : -1));
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(targetRot), Time.deltaTime * 200);
             }
-            var pos = transform.position;
-            pos.y = _defaultY;
             if (_jumpProgress < JumpDuration)
             {
                 _jumpProgress += Time.deltaTime;
@@ -101,11 +112,18 @@ namespace Game
                 }
                 transform.position = new Vector3(transform.position.x, y, transform.position.z);
             }
-            else if (Input.GetKeyDown(_jump))
+            else if (Input.GetKeyDown(_jump) && Energy.Value >= 1f)
             {
                 _jumpProgress = 0;
+                Energy.Value = 0;
             }
-            transform.position += transform.forward * Time.deltaTime * 10;
+            else if (Input.GetKey(_boost) && Energy.Value >= 0f)
+            {
+                Energy.Value -= Time.deltaTime;
+                boosting = true;
+            }
+            _curSpeed = Mathf.MoveTowards(_curSpeed, boosting ? BoostedSpeed : Speed, Acceleration * Time.deltaTime);
+            transform.position += transform.forward * Time.deltaTime * _curSpeed;
             var targetRotY = targetRot.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;
@@ -132,7 +150,7 @@ namespace Game
             }
             var trailColor = _trailMat.GetColor("_TintColor");
             _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, 
-                _jumpProgress >= JumpDuration? 1 : 0, Time.deltaTime * 20)));
+                _jumpProgress >= JumpDuration ? boosting ? 1 : 0 : 1, Time.deltaTime * 20)));
         }
     }
 }
