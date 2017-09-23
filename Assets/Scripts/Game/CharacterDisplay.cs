@@ -5,13 +5,13 @@ namespace Game
 {
     public class CharacterDisplay : MonoBehaviour
     {
-        public Character Character;
+        public Player Player;
         public Image Energy;
 
         private void Update()
         {
             transform.rotation = Quaternion.identity;
-            Energy.fillAmount = Character.Energy.Value * 0.5f;
+            Energy.fillAmount = Player.Energy.Value * 0.5f;
         }
     }
 }

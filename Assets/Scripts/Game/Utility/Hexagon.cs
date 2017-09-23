@@ -6,6 +6,12 @@ namespace Game.Utility
     {
         Rising, Falling, Idle
     }
+    public class HexOverlapEvent : GameEvent
+    {
+        public int Overlapper { get; set; }
+        public int Overlappee { get; set; }
+        public float TimeGap { get; set; }
+    }
     public class Hexagon : MonoBehaviour
     {
         public float RiseSpeed;
@@ -26,6 +32,8 @@ namespace Game.Utility
         private Color _col;
         private HexagonState _state;
         private float _fade;
+        private float _timeSinceSwitch;
+        private bool _noFade;
 
         public HexagonState State
         {
@@ -53,10 +61,24 @@ namespace Game.Utility
                 {
                     if(value > -1)
                     {
-                        _col = Character.Colors[value];
-                        _prop.SetColor("_Color", _col);
-                        _rend.SetPropertyBlock(_prop);
-                        _fade = 0;
+                        if (CurrentSource > -1)
+                        {
+                            MessageManager.SendEvent(new HexOverlapEvent
+                            {
+                                Overlappee = CurrentSource,
+                                Overlapper = value,
+                                TimeGap = _timeSinceSwitch
+                            });
+                        }
+                        else
+                        {
+                            _col = value < Player.Colors.Length ? Player.Colors[value] : new Color(1f, 0.78f, 0.49f);
+                            _prop.SetColor("_Color", _col);
+                            _rend.SetPropertyBlock(_prop);
+                            _noFade = value >= Player.Colors.Length;
+                            _fade = 0;
+                            _timeSinceSwitch = 0f;
+                        }
                     }
                 }
                 _currentSource = value;
@@ -75,12 +97,14 @@ namespace Game.Utility
             _defCol = _rend.sharedMaterial.color;
             State = HexagonState.Falling;
             _fade = FadeDuration;
+            _noFade = false;
         }
 
         public void Refresh()
         {
             if (State != HexagonState.Idle)
             {
+                _timeSinceSwitch += Time.deltaTime;
                 var scale = Trans.localScale;
                 _currentHeight = Mathf.MoveTowards(scale.y, TargetHeight, Time.deltaTime * (_currentHeight > TargetHeight ? FallSpeed : RiseSpeed));
                 Trans.localScale = new Vector3(scale.x, _currentHeight, scale.z);
@@ -92,11 +116,8 @@ namespace Game.Utility
                         CurrentSource = -1;
                     }
                 }
-                if (Mathf.Abs(TargetHeight - _currentHeight) < 2)
-                {
-                }
             }
-            if (_fade < FadeDuration)
+            if (!_noFade && _fade < FadeDuration)
             {
                 _fade += Time.deltaTime;
                 _col = Color.Lerp(_col, _defCol, ColorFadeCurve.Evaluate(_fade / FadeDuration));

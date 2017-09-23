@@ -121,7 +121,7 @@ GameObject:
   - component: {fileID: 4006467197135520}
   - component: {fileID: 114424534976432750}
   m_Layer: 0
-  m_Name: Character
+  m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -332,7 +332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dca230d869f9e91448a00ea6a76a7e3d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Character: {fileID: 114424534976432750}
+  Player: {fileID: 114424534976432750}
   Energy: {fileID: 114893926448078370}
 --- !u!114 &114402344888753238
 MonoBehaviour:
@@ -356,7 +356,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d5c8b90697b68141bb7e4cc35499ad2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Id: 0
   BoardPivot: {fileID: 4147736168835976}
   Trail: {fileID: 96872721906948578}
   JumpCurve:
@@ -384,7 +383,31 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 0
   JumpDuration: 1
-  Hexagons: {fileID: 0}
+  RiserCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 2
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+    - serializedVersion: 2
+      time: 0.8513906
+      value: 0.8647229
+      inSlope: -0.029616525
+      outSlope: -0.029616525
+      tangentMode: 0
+    - serializedVersion: 2
+      time: 1
+      value: 1
+      inSlope: 0.3259052
+      outSlope: 0.3259052
+      tangentMode: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 0
+  Radius: 2
 --- !u!114 &114505353458829808
 MonoBehaviour:
   m_ObjectHideFlags: 1

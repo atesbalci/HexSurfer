@@ -8,6 +8,8 @@ namespace Game.Utility
         public bool Active { get; set; }
         public Vector3 Location { get; set; }
         public int Source { get; set; }
+        public float Radius { get; set; }
+        public AnimationCurve RiserCurve { get; set; }
 
         public HexRiser()
         {
@@ -22,18 +24,22 @@ namespace Game.Utility
         public float HexSpacing;
         public int Width;
         public int Height;
-
-        public AnimationCurve HeightCurve;
-        public float Radius;
+        
         public float CloseHeight;
         public float FarHeight;
 
         private Hexagon[] _hexagons;
         private List<HexRiser> _risers;
 
-        private void Start()
+        private void Awake()
         {
             RefreshHexagons();
+        }
+
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = new Color(1f, 1f, 0f, 0.67f);
+            Gizmos.DrawCube(transform.position, new Vector3(3 * HexSpacing * Width, 1, Height * Mathf.Sin(Mathf.PI / 3) * HexSpacing));
         }
 
         public void RefreshHexagons()
@@ -47,7 +53,7 @@ namespace Game.Utility
             for (var i = 0; i < Width; i++)
             {
                 if (i % 2 == 1)
-                    curx += (3 * HexSpacing);
+                    curx += 3 * HexSpacing;
                 var newHex = Instantiate(HexPrefab).GetComponent<Hexagon>();
                 newHex.transform.SetParent(gameObject.transform);
                 newHex.transform.localPosition = new Vector3(i % 2 == 0 ? curx : -curx, 0, 0);
@@ -61,7 +67,7 @@ namespace Game.Utility
             var zshift = Mathf.Sin(Mathf.PI / 3) * HexSpacing;
             for (var i = 0; i < Height; i++)
             {
-                var heightMult = (i / 2) + 1;
+                var heightMult = i / 2 + 1;
                 foreach (var obj in midLine)
                 {
                     var newHex = Instantiate(obj.gameObject).GetComponent<Hexagon>();
@@ -84,7 +90,6 @@ namespace Game.Utility
             _risers.Add(riser);
         }
 
-
         private void Update()
         {
             for(var i = 0; i < _risers.Count; i++)
@@ -104,8 +109,8 @@ namespace Game.Utility
                 {
                     var dist = DistanceSquare(hex.Position, riser.Location);
                     hex.TargetHeight = Mathf.Max(hex.TargetHeight,
-                        Mathf.Lerp(CloseHeight, FarHeight, HeightCurve.Evaluate(Mathf.Min(1, dist / Radius))));
-                    if (dist < Radius)
+                        Mathf.Lerp(FarHeight, CloseHeight, riser.RiserCurve.Evaluate(1 - dist / riser.Radius)));
+                    if (dist < riser.Radius)
                     {
                         hex.CurrentSource = riser.Source;
                         hex.State = HexagonState.Rising;

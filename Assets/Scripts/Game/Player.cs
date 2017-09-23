@@ -5,23 +5,23 @@ using UnityEngine;
 
 namespace Game
 {
-    public class Character : MonoBehaviour
+    public class Player : MonoBehaviour
     {
         public static readonly Color[] Colors = { Color.red, Color.green };
         public const float Speed = 10;
         public const float BoostedSpeed = 15;
-        public const float Acceleration = 10;
+        public const float Acceleration = 5;
 
-        public int Id;
         public Transform BoardPivot;
         public TrailRenderer Trail;
         public AnimationCurve JumpCurve;
         public float JumpDuration;
+        public AnimationCurve RiserCurve;
+        public float Radius;
 
         public Energy Energy { get; set; }
-
-        [Space(10)]
-        public HexagonTiler Hexagons;
+        public int Id { get; set; }
+        public HexagonTiler Hexagons { get; set; }
 
         public Hexagon CurrentHexagon
         {
@@ -43,12 +43,22 @@ namespace Game
                         _currentRiser = new HexRiser
                         {
                             Location = value.Position,
-                            Source = Id
+                            Source = Id,
+                            RiserCurve = RiserCurve,
+                            Radius = Radius
                         };
                         Hexagons.AddHexRiser(_currentRiser);
                     }
                 }
                 _currentHexagon = value;
+            }
+        }
+
+        public bool Jumping
+        {
+            get
+            {
+                return _jumpProgress < JumpDuration;
             }
         }
 
@@ -59,6 +69,7 @@ namespace Game
         private Material _trailMat;
         private float _jumpProgress;
         private float _curSpeed;
+        private bool _boosting;
 
         private KeyCode _left;
         private KeyCode _right;
@@ -93,7 +104,6 @@ namespace Game
         {
             Energy.Update(Time.deltaTime);
             var targetRot = transform.eulerAngles;
-            var boosting = false;
             if (Input.GetKey(_left) || Input.GetKey(_right))
             {
                 float hitDist;
@@ -102,37 +112,48 @@ namespace Game
                 targetRot += Vector3.up * (60 * (Input.GetKey(_right) ? 1 : -1));
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(targetRot), Time.deltaTime * 200);
             }
-            if (_jumpProgress < JumpDuration)
+
+            if (Jumping)
             {
                 _jumpProgress += Time.deltaTime;
                 var y = _defaultY + JumpCurve.Evaluate(_jumpProgress / JumpDuration);
-                if (_jumpProgress >= JumpDuration)
+                if (!Jumping)
                 {
                     y = _defaultY;
                 }
                 transform.position = new Vector3(transform.position.x, y, transform.position.z);
             }
-            else if (Input.GetKeyDown(_jump) && Energy.Value >= 1f)
+            else if (Input.GetKeyDown(_jump) && Energy.Value > 0.99f)
             {
                 _jumpProgress = 0;
                 Energy.Value = 0;
             }
-            else if (Input.GetKey(_boost) && Energy.Value >= 0f)
+
+            if (!Jumping && Input.GetKeyDown(_boost) && Energy.Value > 0.2f)
+            {
+                _boosting = true;
+            }
+            if (!Jumping && _boosting && Input.GetKey(_boost) && Energy.Value > 0f)
             {
                 Energy.Value -= Time.deltaTime;
-                boosting = true;
+                _boosting = true;
             }
-            _curSpeed = Mathf.MoveTowards(_curSpeed, boosting ? BoostedSpeed : Speed, Acceleration * Time.deltaTime);
+            else
+            {
+                _boosting = false;
+            }
+
+            _curSpeed = Mathf.MoveTowards(_curSpeed, _boosting ? BoostedSpeed : Speed, Acceleration * Time.deltaTime);
             transform.position += transform.forward * Time.deltaTime * _curSpeed;
             var targetRotY = targetRot.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;
             var speed = 5f;
-            if (targetRotY - curRotY < -0.1f && _jumpProgress >= JumpDuration)
+            if (targetRotY - curRotY < -0.1f && !Jumping)
             {
                 modelTargetRot = Quaternion.Euler(0, 0, 60);
             }
-            else if (targetRotY - curRotY > 0.1f && _jumpProgress >= JumpDuration)
+            else if (targetRotY - curRotY > 0.1f && !Jumping)
             {
                 modelTargetRot = Quaternion.Euler(0, 0, -60);
             }
@@ -146,11 +167,16 @@ namespace Game
             if (Physics.Raycast(new Ray(transform.position, Vector3.down), out hit, 100f,
                 LayerMask.GetMask("Hexagon")))
             {
-                CurrentHexagon = _jumpProgress >= JumpDuration ? hit.transform.GetComponent<Hexagon>() : null;
+                CurrentHexagon = !Jumping ? hit.transform.GetComponent<Hexagon>() : null;
             }
             var trailColor = _trailMat.GetColor("_TintColor");
             _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, 
-                _jumpProgress >= JumpDuration ? boosting ? 1 : 0 : 1, Time.deltaTime * 20)));
+                !Jumping ? _boosting ? 1 : 0 : 1, Time.deltaTime * 20)));
+        }
+
+        private void OnDestroy()
+        {
+            _currentRiser.Active = false;
         }
     }
 }

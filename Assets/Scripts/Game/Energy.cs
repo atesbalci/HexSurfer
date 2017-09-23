@@ -4,7 +4,7 @@ namespace Game
 {
     public class Energy
     {
-        public const float RefillCooldown = 0.5f;
+        public const float RefillCooldown = 1f;
 
         public float Value
         {
