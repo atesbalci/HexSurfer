@@ -108,9 +108,10 @@ namespace Game.Utility
                 foreach (var riser in _risers)
                 {
                     var dist = DistanceSquare(hex.Position, riser.Location);
+                    var radiusSquared = riser.Radius * riser.Radius;
                     hex.TargetHeight = Mathf.Max(hex.TargetHeight,
-                        Mathf.Lerp(FarHeight, CloseHeight, riser.RiserCurve.Evaluate(1 - dist / riser.Radius)));
-                    if (dist < riser.Radius)
+                        Mathf.Lerp(FarHeight, CloseHeight, riser.RiserCurve.Evaluate(1 - dist / radiusSquared)));
+                    if (dist < radiusSquared)
                     {
                         hex.CurrentSource = riser.Source;
                         hex.State = HexagonState.Rising;

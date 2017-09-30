@@ -24,7 +24,7 @@ namespace Game
             {
                 foreach (var id in ev.Ids)
                 {
-                    if (_players[id])
+                    if (id < _players.Count && _players[id])
                     {
                         var ps = Instantiate(DeathPrefab, _players[id].transform.position, _players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
                         var main = ps.main;

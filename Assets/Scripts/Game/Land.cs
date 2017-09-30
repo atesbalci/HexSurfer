@@ -23,7 +23,7 @@ namespace Game
         private void OnDrawGizmos()
         {
             Gizmos.color = new Color(0.58f, 0.2f, 0f, 0.51f);
-            Gizmos.DrawSphere(transform.position, Mathf.Sqrt(Radius));
+            Gizmos.DrawSphere(transform.position, Radius);
         }
     }
 }

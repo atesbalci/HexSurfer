@@ -683,7 +683,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
-  Radius: 12.89
+  Radius: 3.5
 --- !u!1 &1673106295
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,7 +749,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
-  Radius: 51.25
+  Radius: 7
 --- !u!1 &1675105029
 GameObject:
   m_ObjectHideFlags: 0
@@ -815,7 +815,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
-  Radius: 5.56
+  Radius: 2.5
 --- !u!1 &1780153793
 GameObject:
   m_ObjectHideFlags: 0
@@ -881,7 +881,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
-  Radius: 49.9
+  Radius: 7
 --- !u!1 &1903416826
 GameObject:
   m_ObjectHideFlags: 0

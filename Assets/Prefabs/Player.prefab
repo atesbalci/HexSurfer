@@ -407,7 +407,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
-  Radius: 2
+  Radius: 1.4
 --- !u!114 &114505353458829808
 MonoBehaviour:
   m_ObjectHideFlags: 1
