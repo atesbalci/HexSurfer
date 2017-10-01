@@ -18,6 +18,7 @@ namespace Game
         public float JumpDuration;
         public AnimationCurve RiserCurve;
         public float Radius;
+        public GameObject JumpMarker;
 
         public Energy Energy { get; set; }
         public int Id { get; set; }
@@ -172,6 +173,7 @@ namespace Game
             var trailColor = _trailMat.GetColor("_TintColor");
             _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, 
                 !Jumping ? _boosting ? 1 : 0 : 1, Time.deltaTime * 20)));
+            JumpMarker.SetActive(Jumping);
         }
 
         private void OnDestroy()
