@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using UniRx;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Game.Utility
 {
@@ -20,6 +23,8 @@ namespace Game.Utility
 
     public class HexagonTiler : MonoBehaviour
     {
+        public const float NoiseHeight = 100f;
+
         public GameObject HexPrefab;
         public float HexSpacing;
         public int Width;
@@ -30,10 +35,12 @@ namespace Game.Utility
 
         private Hexagon[] _hexagons;
         private List<HexRiser> _risers;
+        private float _seed;
 
         private void Awake()
         {
             RefreshHexagons();
+            _seed = Random.Range(0f, 10000f);
         }
 
         private Vector3 DrawSize
@@ -114,6 +121,7 @@ namespace Game.Utility
                     i--;
                 }
             }
+            _seed += Time.deltaTime;
             foreach (var hex in _hexagons)
             {
                 hex.Refresh();
@@ -128,7 +136,12 @@ namespace Game.Utility
                     {
                         hex.CurrentSource = riser.Source;
                         hex.State = HexagonState.Rising;
+                        hex.TargetHeight += NoiseHeight / 2;
                     }
+                }
+                if (hex.State != HexagonState.Rising)
+                {
+                    hex.TargetHeight = Mathf.Max(FarHeight, FarHeight + Mathf.PerlinNoise(_seed + hex.Position.x / 10, _seed + hex.Position.z / 10) * NoiseHeight);
                 }
                 hex.Refresh();
             }
