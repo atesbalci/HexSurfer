@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 7f933491e446e15449c8a231d45ad1ea
-timeCreated: 1509812533
+guid: e601b190908e0df49b0ef363a14012ea
+timeCreated: 1509817196
 licenseType: Free
 ModelImporter:
   serializedVersion: 22
@@ -19,7 +19,7 @@ ModelImporter:
       name: defaultMat
     second: {fileID: 2100000, guid: 220ba33fed3e30441bee8dd3473b3277, type: 2}
   materials:
-    importMaterials: 1
+    importMaterials: 0
     materialName: 0
     materialSearch: 1
     materialLocation: 0
