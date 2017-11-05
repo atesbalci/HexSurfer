@@ -36,6 +36,14 @@ namespace Game
             });
         }
 
+        private void OnDrawGizmosSelected()
+        {
+            foreach (var spawnPoint in SpawnPoints)
+            {
+                Gizmos.DrawSphere(new Vector3(spawnPoint.x, 0, spawnPoint.y), 1);
+            }
+        }
+
         public void Initialize()
         {
             _gameManager = new GameManager();

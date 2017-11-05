@@ -11,8 +11,10 @@ namespace Game
         public const float Speed = 10;
         public const float BoostedSpeed = 15;
         public const float Acceleration = 5;
+        public const float LeaningAngle = 30;
 
         public Transform BoardPivot;
+        public Renderer BoardRenderer;
         public TrailRenderer Trail;
         public AnimationCurve JumpCurve;
         public float JumpDuration;
@@ -99,6 +101,7 @@ namespace Game
             _jumpProgress = JumpDuration;
             _curSpeed = 0;
             Energy = new Energy();
+            BoardRenderer.material.color = Colors[Id];
         }
 
         private void Update()
@@ -152,11 +155,11 @@ namespace Game
             var speed = 5f;
             if (targetRotY - curRotY < -0.1f && !Jumping)
             {
-                modelTargetRot = Quaternion.Euler(0, 0, 60);
+                modelTargetRot = Quaternion.Euler(0, 0, LeaningAngle);
             }
             else if (targetRotY - curRotY > 0.1f && !Jumping)
             {
-                modelTargetRot = Quaternion.Euler(0, 0, -60);
+                modelTargetRot = Quaternion.Euler(0, 0, -LeaningAngle);
             }
             else
             {

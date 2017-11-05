@@ -1,33 +1,23 @@
 fileFormatVersion: 2
-guid: e601b190908e0df49b0ef363a14012ea
-timeCreated: 1509817196
+guid: d204119ecb79a8d4c991d4a0c4104a2b
+timeCreated: 1509893359
 licenseType: Free
 ModelImporter:
   serializedVersion: 22
   fileIDToRecycleName:
-    100000: //RootNode
-    100002: default
-    100004: board_core
-    100006: board_outer
-    400000: //RootNode
-    400002: default
-    400004: board_core
-    400006: board_outer
+    100000: default
+    100002: //RootNode
+    400000: default
+    400002: //RootNode
     2300000: default
-    2300002: board_core
-    2300004: board_outer
     3300000: default
-    3300002: board_core
-    3300004: board_outer
     4300000: default
-    4300002: board_core
-    4300004: board_outer
   externalObjects:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: defaultMat
-    second: {fileID: 2100000, guid: 220ba33fed3e30441bee8dd3473b3277, type: 2}
+    second: {fileID: 2100000, guid: b9e0ee514a20dd041a5a78eed4336d19, type: 2}
   materials:
     importMaterials: 0
     materialName: 0
