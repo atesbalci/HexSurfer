@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Game
 {
+    [RequireComponent(typeof(PlayerInputManager))]
     public class Player : MonoBehaviour
     {
         public static readonly Color[] Colors = { Color.red, Color.green };
@@ -12,6 +13,7 @@ namespace Game
         public const float BoostedSpeed = 15;
         public const float Acceleration = 5;
         public const float LeaningAngle = 30;
+        public const float TurnSpeed = 60f;
 
         public Transform BoardPivot;
         public Renderer BoardRenderer;
@@ -24,7 +26,8 @@ namespace Game
 
         public Energy Energy { get; set; }
         public int Id { get; set; }
-        public HexagonTiler Hexagons { get; set; }
+        public float JumpProgress { get; set; }
+        public bool IsMine { get; set; }
 
         public Hexagon CurrentHexagon
         {
@@ -50,7 +53,7 @@ namespace Game
                             RiserCurve = RiserCurve,
                             Radius = Radius
                         };
-                        Hexagons.AddHexRiser(_currentRiser);
+                        _hexagons.AddHexRiser(_currentRiser);
                     }
                 }
                 _currentHexagon = value;
@@ -61,83 +64,64 @@ namespace Game
         {
             get
             {
-                return _jumpProgress < JumpDuration;
+                return JumpProgress < JumpDuration;
             }
         }
 
+        private HexagonTiler _hexagons;
         private float _defaultY;
         private Hexagon _currentHexagon;
         private HexRiser _currentRiser;
-        private Plane _plane;
         private Material _trailMat;
-        private float _jumpProgress;
         private float _curSpeed;
         private bool _boosting;
-
-        private KeyCode _left;
-        private KeyCode _right;
-        private KeyCode _jump;
-        private KeyCode _boost;
+        private PlayerInputManager _input;
 
         private void Start()
         {
-            _plane = new Plane(Vector3.up, transform.position);
-            if (Id == 0)
-            {
-                _left = KeyCode.A;
-                _right = KeyCode.D;
-                _jump = KeyCode.Space;
-                _boost = KeyCode.LeftShift;
-            }
-            else
-            {
-                _left = KeyCode.LeftArrow;
-                _right = KeyCode.RightArrow;
-                _jump = KeyCode.RightControl;
-                _boost = KeyCode.RightShift;
-            }
+            _input = GetComponent<PlayerInputManager>();
+            _input.Init(IsMine ? ControlInputType.Mouse : ControlInputType.None);
             _defaultY = transform.position.y;
             _trailMat = Trail.material;
-            _jumpProgress = JumpDuration;
+            JumpProgress = JumpDuration;
             _curSpeed = 0;
             Energy = new Energy();
             BoardRenderer.material.color = Colors[Id];
+            _hexagons = FindObjectOfType<HexagonTiler>();
         }
 
         private void Update()
         {
+            _input.Refresh();
             Energy.Update(Time.deltaTime);
             var targetRot = transform.eulerAngles;
-            if (Input.GetKey(_left) || Input.GetKey(_right))
+            if (Mathf.Abs(_input.Axis) > 0.01f)
             {
-                float hitDist;
-                var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                _plane.Raycast(ray, out hitDist);
-                targetRot += Vector3.up * (60 * (Input.GetKey(_right) ? 1 : -1));
+                targetRot += Vector3.up * (TurnSpeed * _input.Axis);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(targetRot), Time.deltaTime * 200);
             }
 
             if (Jumping)
             {
-                _jumpProgress += Time.deltaTime;
-                var y = _defaultY + JumpCurve.Evaluate(_jumpProgress / JumpDuration);
+                JumpProgress += Time.deltaTime;
+                var y = _defaultY + JumpCurve.Evaluate(JumpProgress / JumpDuration);
                 if (!Jumping)
                 {
                     y = _defaultY;
                 }
                 transform.position = new Vector3(transform.position.x, y, transform.position.z);
             }
-            else if (Input.GetKeyDown(_jump) && Energy.Value > 0.99f)
+            else if (_input.Jump && Energy.Value > 0.99f)
             {
-                _jumpProgress = 0;
+                JumpProgress = 0;
                 Energy.Value = 0;
             }
 
-            if (!Jumping && Input.GetKeyDown(_boost) && Energy.Value > 0.2f)
+            if (!Jumping && _input.Boost && Energy.Value > 0.2f)
             {
                 _boosting = true;
             }
-            if (!Jumping && _boosting && Input.GetKey(_boost) && Energy.Value > 0f)
+            if (!Jumping && _boosting && _input.Boost && Energy.Value > 0f)
             {
                 Energy.Value -= Time.deltaTime;
                 _boosting = true;

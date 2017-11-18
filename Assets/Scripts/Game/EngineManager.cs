@@ -14,8 +14,9 @@ namespace Game
         public GameObject CharacterPrefab;
         public GameObject DeathPrefab;
 
+        public List<Player> Players { get; set; }
+
         private GameManager _gameManager;
-        private List<Player> _players;
 
         private void Awake()
         {
@@ -24,13 +25,13 @@ namespace Game
             {
                 foreach (var id in ev.Ids)
                 {
-                    if (id < _players.Count && _players[id])
+                    if (id < Players.Count && Players[id])
                     {
-                        var ps = Instantiate(DeathPrefab, _players[id].transform.position, _players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
+                        var ps = Instantiate(DeathPrefab, Players[id].transform.position, Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
                         var main = ps.main;
                         main.startColor = Player.Colors[id];
                         
-                        Destroy(_players[id].gameObject);
+                        Destroy(Players[id].gameObject);
                     }
                 }
             });
@@ -47,16 +48,7 @@ namespace Game
         public void Initialize()
         {
             _gameManager = new GameManager();
-            _players = new List<Player>();
-            foreach (var spawnPoint in SpawnPoints)
-            {
-                var player = Instantiate(CharacterPrefab,
-                    new Vector3(spawnPoint.x, CharacterPrefab.transform.position.y, spawnPoint.y),
-                    CharacterPrefab.transform.rotation).GetComponent<Player>();
-                player.Id = _players.Count;
-                player.Hexagons = Hexagons;
-                _players.Add(player);
-            }
+            Players = new List<Player>();
         }
     }
 }
