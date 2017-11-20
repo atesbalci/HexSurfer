@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Photon;
 using UniRx;
@@ -7,13 +6,22 @@ using UnityEngine;
 
 namespace Game.Networking
 {
+    [RequireComponent(typeof(EngineManager))]
     public class NetworkManager : PunBehaviour
     {
-        public static Dictionary<int, int> Ids { get; private set; }
+        private EngineManager _engineManager;
 
         private void Start()
         {
+            _engineManager = GetComponent<EngineManager>();
             PhotonNetwork.ConnectUsingSettings(Application.version);
+            _engineManager.Players.ObserveAdd().Subscribe(x =>
+            {
+                if (_engineManager.Players.Count == 2)
+                {
+                    photonView.RPC("Begin", PhotonTargets.AllBuffered);
+                }
+            });
         }
 
         public void Host()
@@ -41,37 +49,16 @@ namespace Game.Networking
 
         public void AddPlayer(PhotonPlayer newPlayer)
         {
-            var engine = FindObjectOfType<EngineManager>();
-            var id = engine.Players.Count;
+            var id = _engineManager.Players.Count;
             PhotonNetwork.Instantiate("Player",
-                new Vector3(engine.SpawnPoints[id].x, 0, engine.SpawnPoints[id].y),
+                new Vector3(_engineManager.SpawnPoints[id].x, 0, _engineManager.SpawnPoints[id].y),
                 Quaternion.identity, 0);
-            photonView.RPC("InitializePlayer", PhotonTargets.AllBuffered, newPlayer.ID, id);
-            if (PhotonNetwork.playerList.Length > 1)
-            {
-                photonView.RPC("Begin", PhotonTargets.AllBuffered);
-            }
-        }
-
-        public override void OnJoinedRoom()
-        {
-            base.OnJoinedRoom();
-            if (Ids == null)
-                Ids = new Dictionary<int, int>();
-        }
-
-        public override void OnLeftRoom()
-        {
-            base.OnLeftRoom();
-            Ids = null;
+            photonView.RPC("InitializePlayer", PhotonTargets.All, newPlayer.ID, id);
         }
 
         [PunRPC]
-        public void InitializePlayer(int networkId, int gameId, PhotonMessageInfo info)
+        public void InitializePlayer(int networkId, int gameId)
         {
-            if (Ids == null)
-                Ids = new Dictionary<int, int>();
-            Ids.Add(networkId, gameId);
             IDisposable disp = null;
             disp = Observable.EveryUpdate().Subscribe(lng =>
             {
@@ -80,10 +67,8 @@ namespace Game.Networking
                 if (player != null)
                 {
                     player.Id = gameId;
-                    if (Ids.ContainsKey(PhotonNetwork.player.ID))
-                        player.IsMine = Ids[PhotonNetwork.player.ID] == player.Id;
-                    var engine = FindObjectOfType<EngineManager>();
-                    engine.Players.Add(player);
+                    player.gameObject.SetActive(_engineManager.GameManager.State == GameState.Playing);
+                    _engineManager.Players.Add(player);
                     disp.Dispose();
                 }
             });
@@ -92,8 +77,8 @@ namespace Game.Networking
         [PunRPC]
         public void Begin()
         {
-            var engine = FindObjectOfType<EngineManager>();
-            foreach (var pl in engine.Players)
+            _engineManager.GameManager.State = GameState.Playing;
+            foreach (var pl in _engineManager.Players)
             {
                 pl.gameObject.SetActive(true);
             }

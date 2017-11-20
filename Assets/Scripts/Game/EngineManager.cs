@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Game.Utility;
+﻿using Game.Utility;
 using UniRx;
 using UnityEngine;
 
@@ -14,9 +13,8 @@ namespace Game
         public GameObject CharacterPrefab;
         public GameObject DeathPrefab;
 
-        public List<Player> Players { get; set; }
-
-        private GameManager _gameManager;
+        public ReactiveCollection<Player> Players { get; set; }
+        public GameManager GameManager { get; set; }
 
         private void Awake()
         {
@@ -47,8 +45,8 @@ namespace Game
 
         public void Initialize()
         {
-            _gameManager = new GameManager();
-            Players = new List<Player>();
+            GameManager = new GameManager();
+            Players = new ReactiveCollection<Player>();
         }
     }
 }

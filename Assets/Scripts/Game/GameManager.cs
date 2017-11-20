@@ -5,6 +5,11 @@ using UniRx;
 
 namespace Game
 {
+    public enum GameState
+    {
+        Pre, Playing, Post
+    }
+
     public class PlayersDefeatedEvent : GameEvent
     {
         public List<int> Ids { get; set; }
@@ -12,6 +17,8 @@ namespace Game
 
     public class GameManager
     {
+        public GameState State { get; set; }
+
         private readonly IDisposable[] _disps;
 
         public GameManager()
