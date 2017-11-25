@@ -16,7 +16,6 @@ namespace Game.Networking
         {
             _player = GetComponent<Player>();
             _playerInputManager = GetComponent<PlayerInputManager>();
-            _player.IsMine = photonView.isMine;
         }
 
         // ReSharper disable once UnusedMember.Local

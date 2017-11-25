@@ -27,7 +27,6 @@ namespace Game
         public Energy Energy { get; set; }
         public int Id { get; set; }
         public float JumpProgress { get; set; }
-        public bool IsMine { get; set; }
 
         public Hexagon CurrentHexagon
         {
@@ -76,11 +75,14 @@ namespace Game
         private float _curSpeed;
         private bool _boosting;
         private PlayerInputManager _input;
+        private bool _initialized;
 
-        private void Start()
+        public void Init(int id, bool isMine)
         {
+            _initialized = true;
+            Id = id;
             _input = GetComponent<PlayerInputManager>();
-            _input.Init(IsMine ? ControlInputType.Mouse : ControlInputType.None);
+            _input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
             _defaultY = transform.position.y;
             _trailMat = Trail.material;
             JumpProgress = JumpDuration;
@@ -92,6 +94,8 @@ namespace Game
 
         private void Update()
         {
+            if (!_initialized)
+                return;
             _input.Refresh();
             Energy.Update(Time.deltaTime);
             var targetRot = transform.eulerAngles;
@@ -163,9 +167,16 @@ namespace Game
             JumpMarker.SetActive(Jumping);
         }
 
+        private void OnDisable()
+        {
+            if (_currentRiser != null)
+                _currentRiser.Active = false;
+        }
+
         private void OnDestroy()
         {
-            _currentRiser.Active = false;
+            if(_currentRiser != null)
+                _currentRiser.Active = false;
         }
     }
 }

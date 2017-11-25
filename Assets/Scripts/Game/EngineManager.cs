@@ -13,26 +13,12 @@ namespace Game
         public GameObject CharacterPrefab;
         public GameObject DeathPrefab;
 
-        public ReactiveCollection<Player> Players { get; set; }
+        public ReactiveDictionary<int,Player> Players { get; set; }
         public GameManager GameManager { get; set; }
 
         private void Awake()
         {
             Initialize();
-            MessageManager.ReceiveEvent<PlayersDefeatedEvent>().Subscribe(ev =>
-            {
-                foreach (var id in ev.Ids)
-                {
-                    if (id < Players.Count && Players[id])
-                    {
-                        var ps = Instantiate(DeathPrefab, Players[id].transform.position, Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
-                        var main = ps.main;
-                        main.startColor = Player.Colors[id];
-                        
-                        Destroy(Players[id].gameObject);
-                    }
-                }
-            });
         }
 
         private void OnDrawGizmosSelected()
@@ -46,7 +32,16 @@ namespace Game
         public void Initialize()
         {
             GameManager = new GameManager();
-            Players = new ReactiveCollection<Player>();
+            Players = new ReactiveDictionary<int, Player>();
+        }
+
+        public void DefeatPlayer(int id)
+        {
+            var ps = Instantiate(DeathPrefab, Players[id].transform.position,
+                Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
+            var main = ps.main;
+            main.startColor = Player.Colors[id];
+            Players[id].gameObject.SetActive(false);
         }
     }
 }

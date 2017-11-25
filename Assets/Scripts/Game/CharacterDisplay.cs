@@ -11,7 +11,8 @@ namespace Game
         private void Update()
         {
             transform.rotation = Quaternion.identity;
-            Energy.fillAmount = Player.Energy.Value * 0.5f;
+            if(Player.Energy != null)
+                Energy.fillAmount = Player.Energy.Value * 0.5f;
         }
     }
 }

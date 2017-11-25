@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using Game.Utility;
 using Photon;
 using UniRx;
 using UnityEngine;
@@ -9,7 +9,10 @@ namespace Game.Networking
     [RequireComponent(typeof(EngineManager))]
     public class NetworkManager : PunBehaviour
     {
+        public GameObject Menu;
+
         private EngineManager _engineManager;
+        private float _defaultHeight;
 
         private void Start()
         {
@@ -17,11 +20,31 @@ namespace Game.Networking
             PhotonNetwork.ConnectUsingSettings(Application.version);
             _engineManager.Players.ObserveAdd().Subscribe(x =>
             {
-                if (_engineManager.Players.Count == 2)
+                if (_engineManager.Players.Count == 2 && PhotonNetwork.isMasterClient)
                 {
-                    photonView.RPC("Begin", PhotonTargets.AllBuffered);
+                    Observable.Timer(TimeSpan.FromSeconds(2f)).Subscribe(lng => photonView.RPC("Begin", PhotonTargets.AllBufferedViaServer));
                 }
             });
+            _defaultHeight = Resources.Load<GameObject>("Player").transform.position.y;
+            MessageManager.ReceiveEvent<PlayersDefeatedEvent>().Subscribe(ev =>
+            {
+                if (PhotonNetwork.isMasterClient)
+                {
+                    foreach (var id in ev.Ids)
+                    {
+                        if (id < _engineManager.Players.Count && _engineManager.Players[id])
+                        {
+                            photonView.RPC("DefeatPlayer", PhotonTargets.All, id);
+                        }
+                    }
+                }
+            });
+        }
+
+        public override void OnConnectedToMaster()
+        {
+            base.OnConnectedToMaster();
+            Menu.SetActive(true);
         }
 
         public void Host()
@@ -49,11 +72,22 @@ namespace Game.Networking
 
         public void AddPlayer(PhotonPlayer newPlayer)
         {
-            var id = _engineManager.Players.Count;
-            PhotonNetwork.Instantiate("Player",
-                new Vector3(_engineManager.SpawnPoints[id].x, 0, _engineManager.SpawnPoints[id].y),
-                Quaternion.identity, 0);
-            photonView.RPC("InitializePlayer", PhotonTargets.All, newPlayer.ID, id);
+            int gameId;
+            for (gameId = 0; gameId < 4; gameId++)
+            {
+                if (_engineManager.Players[gameId] == null)
+                    break;
+            }
+            photonView.RPC("InstantiatePlayer", newPlayer, gameId);
+        }
+
+        [PunRPC]
+        public void InstantiatePlayer(int gameId)
+        {
+            var pl = PhotonNetwork.Instantiate("Player",
+                new Vector3(_engineManager.SpawnPoints[gameId].x, -1000f, _engineManager.SpawnPoints[gameId].y),
+                Quaternion.identity, 0).GetComponent<PhotonView>();
+            photonView.RPC("InitializePlayer", PhotonTargets.AllViaServer, pl.viewID, gameId);
         }
 
         [PunRPC]
@@ -62,14 +96,15 @@ namespace Game.Networking
             IDisposable disp = null;
             disp = Observable.EveryUpdate().Subscribe(lng =>
             {
-                var player = FindObjectsOfType<Player>()
-                    .FirstOrDefault(x => x.GetComponent<PhotonView>().owner.ID == networkId);
-                if (player != null)
+                var playerView = PhotonView.Find(networkId);
+                if (playerView != null)
                 {
-                    player.Id = gameId;
+                    var player = playerView.GetComponent<Player>();
+                    player.Init(gameId, playerView.isMine);
                     player.gameObject.SetActive(_engineManager.GameManager.State == GameState.Playing);
-                    _engineManager.Players.Add(player);
-                    disp.Dispose();
+                    _engineManager.Players.Add(gameId, player);
+                    if (disp != null)
+                        disp.Dispose();
                 }
             });
         }
@@ -80,8 +115,15 @@ namespace Game.Networking
             _engineManager.GameManager.State = GameState.Playing;
             foreach (var pl in _engineManager.Players)
             {
-                pl.gameObject.SetActive(true);
+                pl.Value.transform.position = new Vector3(_engineManager.SpawnPoints[pl.Key].x, _defaultHeight, _engineManager.SpawnPoints[pl.Key].y);
+                pl.Value.gameObject.SetActive(true);
             }
+        }
+
+        [PunRPC]
+        public void DefeatPlayer(int id)
+        {
+            _engineManager.DefeatPlayer(id);
         }
     }
 }
