@@ -75,7 +75,7 @@ namespace Game.Networking
             int gameId;
             for (gameId = 0; gameId < 4; gameId++)
             {
-                if (_engineManager.Players[gameId] == null)
+                if (!_engineManager.Players.ContainsKey(gameId))
                     break;
             }
             photonView.RPC("InstantiatePlayer", newPlayer, gameId);
