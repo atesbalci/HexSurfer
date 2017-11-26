@@ -17,14 +17,8 @@ namespace Game.Networking
         private void Start()
         {
             _engineManager = GetComponent<EngineManager>();
+            while (PhotonNetwork.connectionState != ConnectionState.Disconnected) { }
             PhotonNetwork.ConnectUsingSettings(Application.version);
-            _engineManager.Players.ObserveAdd().Subscribe(x =>
-            {
-                if (_engineManager.Players.Count == 2 && PhotonNetwork.isMasterClient)
-                {
-                    Observable.Timer(TimeSpan.FromSeconds(2f)).Subscribe(lng => photonView.RPC("Begin", PhotonTargets.AllBufferedViaServer));
-                }
-            });
             _defaultHeight = Resources.Load<GameObject>("Player").transform.position.y;
             MessageManager.ReceiveEvent<PlayersDefeatedEvent>().Subscribe(ev =>
             {
@@ -32,13 +26,32 @@ namespace Game.Networking
                 {
                     foreach (var id in ev.Ids)
                     {
-                        if (id < _engineManager.Players.Count && _engineManager.Players[id])
+                        if (id < _engineManager.Players.Length && _engineManager.Players[id].gameObject.activeInHierarchy)
                         {
                             photonView.RPC("DefeatPlayer", PhotonTargets.All, id);
                         }
                     }
                 }
+            }).AddTo(gameObject);
+            _engineManager.GameManager.Players.ObserveAdd().Subscribe(add =>
+            {
+                if(PhotonNetwork.isMasterClient && _engineManager.GameManager.Players.Count > 1)
+                    Observable.Timer(TimeSpan.FromSeconds(2f)).Subscribe(lng => photonView.RPC("Begin", PhotonTargets.AllBuffered));
             });
+        }
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                PhotonNetwork.Disconnect();
+            }
+        }
+
+        public override void OnDisconnectedFromPhoton()
+        {
+            base.OnDisconnectedFromPhoton();
+            UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
         public override void OnConnectedToMaster()
@@ -72,51 +85,29 @@ namespace Game.Networking
 
         public void AddPlayer(PhotonPlayer newPlayer)
         {
-            int gameId;
-            for (gameId = 0; gameId < 4; gameId++)
-            {
-                if (!_engineManager.Players.ContainsKey(gameId))
-                    break;
-            }
-            photonView.RPC("InstantiatePlayer", newPlayer, gameId);
+            var gameId = _engineManager.GameManager.GetNextAvailableId();
+            photonView.RPC("InitializePlayer", PhotonTargets.AllBuffered, gameId, newPlayer);
         }
 
         [PunRPC]
-        public void InstantiatePlayer(int gameId)
+        public void InitializePlayer(int gameId, PhotonPlayer owner)
         {
-            var pl = PhotonNetwork.Instantiate("Player",
-                new Vector3(_engineManager.SpawnPoints[gameId].x, -1000f, _engineManager.SpawnPoints[gameId].y),
-                Quaternion.identity, 0).GetComponent<PhotonView>();
-            photonView.RPC("InitializePlayer", PhotonTargets.AllViaServer, pl.viewID, gameId);
-        }
-
-        [PunRPC]
-        public void InitializePlayer(int networkId, int gameId)
-        {
-            IDisposable disp = null;
-            disp = Observable.EveryUpdate().Subscribe(lng =>
-            {
-                var playerView = PhotonView.Find(networkId);
-                if (playerView != null)
-                {
-                    var player = playerView.GetComponent<Player>();
-                    player.Init(gameId, playerView.isMine);
-                    player.gameObject.SetActive(_engineManager.GameManager.State == GameState.Playing);
-                    _engineManager.Players.Add(gameId, player);
-                    if (disp != null)
-                        disp.Dispose();
-                }
-            });
+            // ReSharper disable once PossibleNullReferenceException
+            _engineManager.GameManager.AddPlayer(gameId, owner.NickName);
+            _engineManager.Players[gameId].GetComponent<PhotonView>().TransferOwnership(owner);
+            _engineManager.Players[gameId].Init(ReferenceEquals(PhotonNetwork.player, owner));
         }
 
         [PunRPC]
         public void Begin()
         {
             _engineManager.GameManager.State = GameState.Playing;
-            foreach (var pl in _engineManager.Players)
+            foreach (var player in _engineManager.GameManager.Players)
             {
-                pl.Value.transform.position = new Vector3(_engineManager.SpawnPoints[pl.Key].x, _defaultHeight, _engineManager.SpawnPoints[pl.Key].y);
-                pl.Value.gameObject.SetActive(true);
+                var pl = _engineManager.Players[player.Id];
+                pl.transform.position = new Vector3(_engineManager.SpawnPoints[player.Id].x, _defaultHeight,
+                    _engineManager.SpawnPoints[player.Id].y);
+                pl.gameObject.SetActive(true);
             }
         }
 

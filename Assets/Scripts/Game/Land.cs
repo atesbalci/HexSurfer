@@ -13,7 +13,7 @@ namespace Game
         {
             Hexagons.AddHexRiser(new HexRiser
             {
-                 Source = 2,
+                 Source = 4,
                  RiserCurve = RiseCurve,
                  Location = transform.position,
                  Radius = Radius

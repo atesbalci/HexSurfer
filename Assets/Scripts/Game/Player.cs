@@ -8,7 +8,7 @@ namespace Game
     [RequireComponent(typeof(PlayerInputManager))]
     public class Player : MonoBehaviour
     {
-        public static readonly Color[] Colors = { Color.red, Color.green };
+        public static readonly Color[] Colors = { Color.red, Color.green, Color.magenta, new Color(1f, 0.36f, 0f),  };
         public const float Speed = 10;
         public const float BoostedSpeed = 15;
         public const float Acceleration = 5;
@@ -25,8 +25,8 @@ namespace Game
         public GameObject JumpMarker;
 
         public Energy Energy { get; set; }
-        public int Id { get; set; }
         public float JumpProgress { get; set; }
+        public int Id { get; set; }
 
         public Hexagon CurrentHexagon
         {
@@ -77,10 +77,9 @@ namespace Game
         private PlayerInputManager _input;
         private bool _initialized;
 
-        public void Init(int id, bool isMine)
+        public void Init(bool isMine)
         {
             _initialized = true;
-            Id = id;
             _input = GetComponent<PlayerInputManager>();
             _input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
             _defaultY = transform.position.y;

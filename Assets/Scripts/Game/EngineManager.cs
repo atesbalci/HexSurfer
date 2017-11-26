@@ -1,5 +1,4 @@
 ﻿using Game.Utility;
-using UniRx;
 using UnityEngine;
 
 namespace Game
@@ -8,12 +7,11 @@ namespace Game
     {
         public HexagonTiler Hexagons;
         public Vector2[] SpawnPoints;
+        public Player[] Players;
 
         [Space(10)]
-        public GameObject CharacterPrefab;
         public GameObject DeathPrefab;
 
-        public ReactiveDictionary<int,Player> Players { get; set; }
         public GameManager GameManager { get; set; }
 
         private void Awake()
@@ -32,7 +30,11 @@ namespace Game
         public void Initialize()
         {
             GameManager = new GameManager();
-            Players = new ReactiveDictionary<int, Player>();
+            for (var i = 0; i < Players.Length; i++)
+            {
+                var player = Players[i];
+                player.Id = i;
+            }
         }
 
         public void DefeatPlayer(int id)
