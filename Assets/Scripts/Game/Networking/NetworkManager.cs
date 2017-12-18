@@ -3,14 +3,13 @@ using Game.Utility;
 using Photon;
 using UniRx;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Game.Networking
 {
     [RequireComponent(typeof(EngineManager))]
     public class NetworkManager : PunBehaviour
     {
-        public GameObject Menu;
-
         private EngineManager _engineManager;
         private float _defaultHeight;
 
@@ -40,6 +39,12 @@ namespace Game.Networking
             });
         }
 
+        public override void OnConnectedToMaster()
+        {
+            base.OnConnectedToMaster();
+            PhotonNetwork.JoinLobby();
+        }
+
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.R))
@@ -54,20 +59,14 @@ namespace Game.Networking
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
-        public override void OnConnectedToMaster()
-        {
-            base.OnConnectedToMaster();
-            Menu.SetActive(true);
-        }
-
         public void Host()
         {
-            PhotonNetwork.CreateRoom("Room");
+            PhotonNetwork.CreateRoom("Room " + Random.Range(0, int.MaxValue));
         }
 
-        public void Join()
+        public void Join(string room)
         {
-            PhotonNetwork.JoinRoom("Room");
+            PhotonNetwork.JoinRoom(room);
         }
 
         public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
@@ -92,7 +91,6 @@ namespace Game.Networking
         [PunRPC]
         public void InitializePlayer(int gameId, PhotonPlayer owner)
         {
-            // ReSharper disable once PossibleNullReferenceException
             _engineManager.GameManager.AddPlayer(gameId, owner.NickName);
             _engineManager.Players[gameId].GetComponent<PhotonView>().TransferOwnership(owner);
             _engineManager.Players[gameId].Init(ReferenceEquals(PhotonNetwork.player, owner));
