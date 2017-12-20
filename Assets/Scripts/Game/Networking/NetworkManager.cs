@@ -32,6 +32,13 @@ namespace Game.Networking
                     }
                 }
             }).AddTo(gameObject);
+            MessageManager.ReceiveEvent<CountdownEvent>().Subscribe(ev =>
+            {
+                if (ev.Number == 0 && PhotonNetwork.isMasterClient)
+                {
+                    photonView.RPC("Begin", PhotonTargets.AllBuffered);
+                }
+            });
             _engineManager.GameManager.Players.ObserveAdd().Subscribe(add =>
             {
                 if(PhotonNetwork.isMasterClient && _engineManager.GameManager.Players.Count > 1)
@@ -82,6 +89,12 @@ namespace Game.Networking
             AddPlayer(PhotonNetwork.player);
         }
 
+        public override void OnJoinedRoom()
+        {
+            base.OnJoinedRoom();
+            _engineManager.Initialize();
+        }
+
         public void AddPlayer(PhotonPlayer newPlayer)
         {
             var gameId = _engineManager.GameManager.GetNextAvailableId();
@@ -113,6 +126,22 @@ namespace Game.Networking
         public void DefeatPlayer(int id)
         {
             _engineManager.DefeatPlayer(id);
+        }
+
+        // ReSharper disable once UnusedMember.Local
+        // ReSharper disable once UnusedParameter.Local
+        private void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+        {
+            if (stream.isWriting)
+            {
+                stream.SendNext(_engineManager.GameManager.Time);
+                stream.SendNext(_engineManager.GameManager.State);
+            }
+            else
+            {
+                _engineManager.GameManager.Time = (float)stream.ReceiveNext();
+                _engineManager.GameManager.State = (GameState)stream.ReceiveNext();
+            }
         }
     }
 }
