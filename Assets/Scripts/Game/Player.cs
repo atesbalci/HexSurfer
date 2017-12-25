@@ -38,11 +38,9 @@ namespace Game
                     if (CurrentHexagon)
                     {
                         var riser = _currentRiser;
-                        Observable.Timer(TimeSpan.FromSeconds(0)).Subscribe(lng =>
-                        {
-                            riser.Active = false;
-                        });
+                        Observable.Timer(TimeSpan.FromSeconds(0)).Subscribe(lng => riser.Active = false);
                     }
+
                     if (value)
                     {
                         _currentRiser = new HexRiser
@@ -53,6 +51,10 @@ namespace Game
                             Radius = Radius
                         };
                         _hexagons.AddHexRiser(_currentRiser);
+                    }
+                    else
+                    {
+                        MessageManager.SendEvent(new PlayersDefeatedEvent { Ids = { Id } });
                     }
                 }
                 _currentHexagon = value;

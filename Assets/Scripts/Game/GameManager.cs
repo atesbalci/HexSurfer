@@ -30,10 +30,10 @@ namespace Game
     public class GameManager
     {
         public ReactiveCollection<PlayerInfo> Players { get; private set; }
-        public float Time { get; set; }
 
         private readonly IDisposable[] _disps;
         private GameState _state;
+        private float _time;
 
         public GameManager()
         {
@@ -87,7 +87,6 @@ namespace Game
             }
         }
 
-
         public GameState State
         {
             get { return _state; }
@@ -113,6 +112,23 @@ namespace Game
                         });
                         break;
                 }
+            }
+        }
+
+        public float Time
+        {
+            get { return _time; }
+            set
+            {
+                if (Time < 0.001f && value >= 0.001f)
+                {
+                    State = GameState.Pre;
+                }
+                else if (Time < 3f && value >= 3f)
+                {
+                    State = GameState.Playing;
+                }
+                _time = value;
             }
         }
     }
