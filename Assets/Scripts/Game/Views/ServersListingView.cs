@@ -4,7 +4,7 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.UI
+namespace Game.Views
 {
     public class ServersListingView : MonoBehaviour
     {
@@ -17,14 +17,6 @@ namespace Game.UI
 
         private void Start()
         {
-            Observable.EveryUpdate().Subscribe(lng =>
-            {
-                gameObject.SetActive(PhotonNetwork.insideLobby);
-                if (Input.GetKeyDown(KeyCode.Escape))
-                {
-                    PhotonNetwork.Disconnect();
-                }
-            });
             RefreshButton.onClick.AddListener(() =>
             {
                 foreach (Transform child in Content)

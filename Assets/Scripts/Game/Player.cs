@@ -28,6 +28,32 @@ namespace Game
         public float JumpProgress { get; set; }
         public int Id { get; set; }
 
+        public bool Jumping { get { return JumpProgress < JumpDuration; } }
+
+        private HexagonTiler _hexagons;
+        private float _defaultY;
+        private Hexagon _currentHexagon;
+        private HexRiser _currentRiser;
+        private Material _trailMat;
+        private float _curSpeed;
+        private bool _boosting;
+        private PlayerInputManager _input;
+        private bool _initialized;
+
+        public void Init(bool isMine)
+        {
+            _initialized = true;
+            _input = GetComponent<PlayerInputManager>();
+            _input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
+            _defaultY = transform.position.y;
+            _trailMat = Trail.material;
+            JumpProgress = JumpDuration;
+            _curSpeed = 0;
+            Energy = new Energy();
+            BoardRenderer.material.color = Colors[Id];
+            _hexagons = FindObjectOfType<HexagonTiler>();
+        }
+
         public Hexagon CurrentHexagon
         {
             get { return _currentHexagon; }
@@ -59,38 +85,6 @@ namespace Game
                 }
                 _currentHexagon = value;
             }
-        }
-
-        public bool Jumping
-        {
-            get
-            {
-                return JumpProgress < JumpDuration;
-            }
-        }
-
-        private HexagonTiler _hexagons;
-        private float _defaultY;
-        private Hexagon _currentHexagon;
-        private HexRiser _currentRiser;
-        private Material _trailMat;
-        private float _curSpeed;
-        private bool _boosting;
-        private PlayerInputManager _input;
-        private bool _initialized;
-
-        public void Init(bool isMine)
-        {
-            _initialized = true;
-            _input = GetComponent<PlayerInputManager>();
-            _input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
-            _defaultY = transform.position.y;
-            _trailMat = Trail.material;
-            JumpProgress = JumpDuration;
-            _curSpeed = 0;
-            Energy = new Energy();
-            BoardRenderer.material.color = Colors[Id];
-            _hexagons = FindObjectOfType<HexagonTiler>();
         }
 
         private void Update()

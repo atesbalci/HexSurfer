@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game
+namespace Game.Views
 {
-    public class CharacterDisplay : MonoBehaviour
+    public class CharacterDisplayView : MonoBehaviour
     {
         public Player Player;
         public Image Energy;

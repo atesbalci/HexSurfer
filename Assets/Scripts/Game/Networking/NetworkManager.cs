@@ -7,9 +7,18 @@ using Random = UnityEngine.Random;
 
 namespace Game.Networking
 {
+    public class CountdownTickEvent : GameEvent
+    {
+        public int Number { get; set; }
+    }
+
+    public class BeginGameEvent : GameEvent { }
+
     [RequireComponent(typeof(EngineManager))]
     public class NetworkManager : PunBehaviour
     {
+        private const float CountdownInterval = 1f;
+
         private EngineManager _engineManager;
         private float _defaultHeight;
 
@@ -32,18 +41,25 @@ namespace Game.Networking
                     }
                 }
             }).AddTo(gameObject);
-            MessageManager.ReceiveEvent<CountdownEvent>().Subscribe(ev =>
+            MessageManager.ReceiveEvent<StateChangeEvent>().Subscribe(ev =>
             {
-                if (ev.Number == 0 && PhotonNetwork.isMasterClient)
+                if (ev.State == GameState.Pre && PhotonNetwork.isMasterClient)
                 {
-                    photonView.RPC("Begin", PhotonTargets.AllBuffered);
+                    var count = 3;
+                    var disp = new IDisposable[1];
+                    disp[0] = Observable.Interval(TimeSpan.FromSeconds(CountdownInterval)).Subscribe(lng =>
+                    {
+                        photonView.RPC("CountdownTick", PhotonTargets.All, count);
+                        count--;
+                        if (count < 0)
+                        {
+                            disp[0].Dispose();
+                            photonView.RPC("Begin", PhotonTargets.All);
+                        }
+                    });
                 }
-            });
-            _engineManager.GameManager.Players.ObserveAdd().Subscribe(add =>
-            {
-                if(PhotonNetwork.isMasterClient && _engineManager.GameManager.Players.Count > 1)
-                    Observable.Timer(TimeSpan.FromSeconds(2f)).Subscribe(lng => photonView.RPC("Begin", PhotonTargets.AllBuffered));
-            });
+            }).AddTo(gameObject);
+            MessageManager.ReceiveEvent<BeginGameEvent>().Subscribe(ev => _engineManager.GameManager.State = GameState.Pre);
         }
 
         public override void OnConnectedToMaster()
@@ -86,13 +102,17 @@ namespace Game.Networking
         public override void OnCreatedRoom()
         {
             base.OnCreatedRoom();
+            _engineManager.Initialize();
             AddPlayer(PhotonNetwork.player);
         }
 
         public override void OnJoinedRoom()
         {
             base.OnJoinedRoom();
-            _engineManager.Initialize();
+            if (!PhotonNetwork.isMasterClient)
+            {
+                _engineManager.Initialize();
+            }
         }
 
         public void AddPlayer(PhotonPlayer newPlayer)
@@ -128,18 +148,22 @@ namespace Game.Networking
             _engineManager.DefeatPlayer(id);
         }
 
+        [PunRPC]
+        public void CountdownTick(int n)
+        {
+            MessageManager.SendEvent(new CountdownTickEvent { Number = n });
+        }
+
         // ReSharper disable once UnusedMember.Local
         // ReSharper disable once UnusedParameter.Local
         private void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
         {
             if (stream.isWriting)
             {
-                stream.SendNext(_engineManager.GameManager.Time);
                 stream.SendNext(_engineManager.GameManager.State);
             }
             else
             {
-                _engineManager.GameManager.Time = (float)stream.ReceiveNext();
                 _engineManager.GameManager.State = (GameState)stream.ReceiveNext();
             }
         }

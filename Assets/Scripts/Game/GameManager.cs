@@ -22,9 +22,9 @@ namespace Game
         public string Name { get; set; }
     }
 
-    public class CountdownEvent : GameEvent
+    public class StateChangeEvent : GameEvent
     {
-        public int Number { get; set; }
+        public GameState State { get; set; }
     }
 
     public class GameManager
@@ -81,10 +81,7 @@ namespace Game
 
         public void Tick(float delta)
         {
-            if (State != GameState.Idle)
-            {
-                Time += delta;
-            }
+            
         }
 
         public GameState State
@@ -95,40 +92,7 @@ namespace Game
                 if (State == value)
                     return;
                 _state = value;
-                switch (State)
-                {
-                    case GameState.Pre:
-                        var timer = 3;
-                        var disp = new IDisposable[1];
-                        disp[0] = Observable.Interval(TimeSpan.FromSeconds(1f)).Subscribe(l =>
-                        {
-                            MessageManager.SendEvent(new CountdownEvent { Number = timer });
-                            timer--;
-                            if (timer < 0)
-                            {
-                                disp[0].Dispose();
-                                State = GameState.Playing;
-                            }
-                        });
-                        break;
-                }
-            }
-        }
-
-        public float Time
-        {
-            get { return _time; }
-            set
-            {
-                if (Time < 0.001f && value >= 0.001f)
-                {
-                    State = GameState.Pre;
-                }
-                else if (Time < 3f && value >= 3f)
-                {
-                    State = GameState.Playing;
-                }
-                _time = value;
+                MessageManager.SendEvent(new StateChangeEvent { State = State });
             }
         }
     }

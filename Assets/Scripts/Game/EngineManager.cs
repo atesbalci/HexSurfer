@@ -14,11 +14,6 @@ namespace Game
 
         public GameManager GameManager { get; set; }
 
-        private void Awake()
-        {
-            Initialize();
-        }
-
         private void OnDrawGizmosSelected()
         {
             foreach (var spawnPoint in SpawnPoints)
