@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Game.Utility;
 using Photon;
 using UniRx;
@@ -36,7 +37,7 @@ namespace Game.Networking
                     {
                         if (id < _engineManager.Players.Length && _engineManager.Players[id].gameObject.activeInHierarchy)
                         {
-                            photonView.RPC("DefeatPlayer", PhotonTargets.All, id);
+                            photonView.RPC("DefeatPlayer", PhotonTargets.All, id, _engineManager.GameManager.Players.Count(x => x.Defeated));
                         }
                     }
                 }
@@ -143,15 +144,22 @@ namespace Game.Networking
         }
 
         [PunRPC]
-        public void DefeatPlayer(int id)
+        public void DefeatPlayer(int id, int defeatOrder)
         {
-            _engineManager.DefeatPlayer(id);
+            _engineManager.DefeatPlayer(id, defeatOrder);
         }
 
         [PunRPC]
         public void CountdownTick(int n)
         {
             MessageManager.SendEvent(new CountdownTickEvent { Number = n });
+        }
+
+        public override void OnPhotonPlayerDisconnected(PhotonPlayer otherPlayer)
+        {
+            base.OnPhotonPlayerDisconnected(otherPlayer);
+            var id = _engineManager.Players.First(x => x.GetComponent<PhotonView>().owner.Equals(otherPlayer)).Id;
+            _engineManager.PlayerLeft(id);
         }
 
         // ReSharper disable once UnusedMember.Local

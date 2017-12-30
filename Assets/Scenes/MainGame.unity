@@ -1014,7 +1014,7 @@ GameObject:
   - component: {fileID: 624817275}
   - component: {fileID: 624817279}
   m_Layer: 5
-  m_Name: PreGame
+  m_Name: Intermission
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1399,7 +1399,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ServerListing: {fileID: 1946112347}
-  PreGame: {fileID: 624817273}
+  Intermission: {fileID: 624817273}
 --- !u!1 &762557155
 GameObject:
   m_ObjectHideFlags: 0
@@ -2854,12 +2854,12 @@ Prefab:
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: viewIdField
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: instantiationId
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 1764205067134774, guid: f89bf01ab685cdd4d8d31fffbbbec702, type: 2}
       propertyPath: m_Name
@@ -3825,12 +3825,12 @@ Prefab:
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: viewIdField
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: instantiationId
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1764205067134774, guid: f89bf01ab685cdd4d8d31fffbbbec702, type: 2}
       propertyPath: m_Name
@@ -4181,12 +4181,12 @@ Prefab:
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: viewIdField
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 114478822020324134, guid: f89bf01ab685cdd4d8d31fffbbbec702,
         type: 2}
       propertyPath: instantiationId
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1764205067134774, guid: f89bf01ab685cdd4d8d31fffbbbec702, type: 2}
       propertyPath: m_Name

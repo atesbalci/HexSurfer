@@ -5,7 +5,7 @@ namespace Game.Views
     public class UIView : MonoBehaviour
     {
         public GameObject ServerListing;
-        public GameObject PreGame;
+        public GameObject Intermission;
 
         private EngineManager _engine;
 
@@ -17,7 +17,8 @@ namespace Game.Views
         private void Update()
         {
             ServerListing.SetActive(PhotonNetwork.insideLobby);
-            PreGame.SetActive(_engine.GameManager != null && _engine.GameManager.State == GameState.Idle);
+            Intermission.SetActive(_engine.GameManager != null && (_engine.GameManager.State == GameState.Idle && _engine.GameManager.RoundsPlayed == 0 || 
+                Input.GetKey(KeyCode.Tab) && _engine.GameManager.State == GameState.Playing));
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 PhotonNetwork.Disconnect();

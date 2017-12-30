@@ -20,6 +20,9 @@ namespace Game
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public int Score { get; set; }
+        public bool Defeated { get; set; }
+        public int DefeatOrder { get; set; }
     }
 
     public class StateChangeEvent : GameEvent
@@ -29,11 +32,11 @@ namespace Game
 
     public class GameManager
     {
-        public ReactiveCollection<PlayerInfo> Players { get; private set; }
+        public List<PlayerInfo> Players { get; private set; }
+        public int RoundsPlayed { get; set; }
 
         private readonly IDisposable[] _disps;
         private GameState _state;
-        private float _time;
 
         public GameManager()
         {
@@ -49,7 +52,7 @@ namespace Game
                     MessageManager.SendEvent(new PlayersDefeatedEvent {Ids = ids});
                 })
             };
-            Players = new ReactiveCollection<PlayerInfo>();
+            Players = new List<PlayerInfo>();
         }
 
         ~GameManager()
@@ -79,9 +82,29 @@ namespace Game
             return id;
         }
 
-        public void Tick(float delta)
+        public void PlayerLeft(int id)
         {
-            
+            Players.RemoveAll(x => x.Id == id);
+        }
+
+        public void DefeatPlayer(int id, int order)
+        {
+            var pl = Players.FirstOrDefault(x => x.Id == id);
+            if (pl != null)
+            {
+                pl.Defeated = true;
+                pl.DefeatOrder = order;
+                if (Players.Count(x => !x.Defeated) <= 1)
+                {
+                    var undefeated = Players.FirstOrDefault(x => !x.Defeated);
+                    if (undefeated != null)
+                    {
+                        undefeated.Defeated = true;
+                        undefeated.DefeatOrder = Players.Count - 1;
+                    }
+                    State = GameState.Post;
+                }
+            }
         }
 
         public GameState State
@@ -93,6 +116,23 @@ namespace Game
                     return;
                 _state = value;
                 MessageManager.SendEvent(new StateChangeEvent { State = State });
+                switch (State)
+                {
+                    case GameState.Post:
+                        RoundsPlayed++;
+                        foreach (var player in Players)
+                        {
+                            player.Score += player.DefeatOrder * 100;
+                        }
+                        Observable.Timer(TimeSpan.FromSeconds(3f)).Subscribe(l => State = GameState.Pre);
+                        break;
+                    case GameState.Playing:
+                        foreach (var player in Players)
+                        {
+                            player.Defeated = false;
+                        }
+                        break;
+                }
             }
         }
     }

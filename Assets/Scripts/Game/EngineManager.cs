@@ -1,4 +1,5 @@
-﻿using Game.Utility;
+﻿using System.Linq;
+using Game.Utility;
 using UnityEngine;
 
 namespace Game
@@ -32,13 +33,20 @@ namespace Game
             }
         }
 
-        public void DefeatPlayer(int id)
+        public void DefeatPlayer(int id, int order)
         {
             var ps = Instantiate(DeathPrefab, Players[id].transform.position,
                 Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
             var main = ps.main;
             main.startColor = Player.Colors[id];
             Players[id].gameObject.SetActive(false);
+            GameManager.Defeat(id, order);
+        }
+
+        public void PlayerLeft(int id)
+        {
+            Players[id].gameObject.SetActive(false);
+            GameManager.Players.RemoveAll(x => x.Id == id);
         }
     }
 }
