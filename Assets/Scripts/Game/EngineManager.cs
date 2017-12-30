@@ -40,7 +40,7 @@ namespace Game
             var main = ps.main;
             main.startColor = Player.Colors[id];
             Players[id].gameObject.SetActive(false);
-            GameManager.Defeat(id, order);
+            GameManager.DefeatPlayer(id, order);
         }
 
         public void PlayerLeft(int id)
