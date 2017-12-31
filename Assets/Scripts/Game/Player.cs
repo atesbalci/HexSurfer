@@ -78,10 +78,6 @@ namespace Game
                         };
                         _hexagons.AddHexRiser(_currentRiser);
                     }
-                    else
-                    {
-                        MessageManager.SendEvent(new PlayersDefeatedEvent { Ids = { Id } });
-                    }
                 }
                 _currentHexagon = value;
             }
