@@ -127,7 +127,7 @@ namespace Game
             }
 
             _curSpeed = Mathf.MoveTowards(_curSpeed, _boosting ? BoostedSpeed : Speed, Acceleration * Time.deltaTime);
-            //transform.position += transform.forward * Time.deltaTime * _curSpeed;
+            transform.position += transform.forward * Time.deltaTime * _curSpeed;
             var targetRotY = targetRot.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;
@@ -168,6 +168,11 @@ namespace Game
         {
             if(_currentRiser != null)
                 _currentRiser.Active = false;
+        }
+
+        private void OnEnable()
+        {
+            transform.position = new Vector3(transform.position.x, _defaultY, transform.position.z);
         }
     }
 }
