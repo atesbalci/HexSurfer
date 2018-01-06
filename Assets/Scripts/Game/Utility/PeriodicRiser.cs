@@ -10,6 +10,7 @@ namespace Game.Utility
         public float Duration;
         public AnimationCurve Curve;
         public float Radius;
+        public int Id;
 
         private HexagonTiler _hex;
         private float _timer;
@@ -19,7 +20,7 @@ namespace Game.Utility
         {
             _timer = 0;
             _hex = FindObjectOfType<HexagonTiler>();
-            _riser = new HexRiser { Active = false, Location = transform.position, Source = 0 , RiserCurve = Curve, Radius = Radius };
+            _riser = new HexRiser { Active = false, Location = transform.position, Source = Id, RiserCurve = Curve, Radius = Radius };
         }
 
         private void Update()
@@ -30,7 +31,7 @@ namespace Game.Utility
             {
                 _timer -= Period;
                 _riser.Active = true;
-                Observable.Timer(TimeSpan.FromSeconds(Duration)).Subscribe(l => _riser.Active = false).AddTo(gameObject);
+                Observable.Timer(TimeSpan.FromSeconds(Duration)).Subscribe(l => _riser.Active = false);
                 _hex.AddHexRiser(_riser);
             }
         }

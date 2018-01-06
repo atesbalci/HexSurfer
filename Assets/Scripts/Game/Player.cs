@@ -127,7 +127,7 @@ namespace Game
             }
 
             _curSpeed = Mathf.MoveTowards(_curSpeed, _boosting ? BoostedSpeed : Speed, Acceleration * Time.deltaTime);
-            transform.position += transform.forward * Time.deltaTime * _curSpeed;
+            //transform.position += transform.forward * Time.deltaTime * _curSpeed;
             var targetRotY = targetRot.y;
             var curRotY = transform.eulerAngles.y;
             Quaternion modelTargetRot;

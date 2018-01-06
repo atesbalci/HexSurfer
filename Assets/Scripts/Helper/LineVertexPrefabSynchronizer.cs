@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Game.Utility
+namespace Helper
 {
     [RequireComponent(typeof(LineRenderer))]
     public class LineVertexPrefabSynchronizer : MonoBehaviour
