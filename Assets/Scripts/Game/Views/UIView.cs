@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using Game.Engine;
+using Game.Models;
+using UnityEngine;
 
 namespace Game.Views
 {
@@ -17,8 +19,11 @@ namespace Game.Views
         private void Update()
         {
             ServerListing.SetActive(PhotonNetwork.insideLobby);
-            Intermission.SetActive(_engine.GameManager != null && (_engine.GameManager.State == GameState.Idle && _engine.GameManager.RoundsPlayed == 0 || 
-                Input.GetKey(KeyCode.Tab) && _engine.GameManager.State == GameState.Playing));
+            Intermission.SetActive(_engine.GameManager != null &&
+                                   (_engine.GameManager.State == GameState.Idle &&
+                                     _engine.GameManager.RoundsPlayed == 0 ||
+                                     Input.GetKey(KeyCode.Tab) && _engine.GameManager.State == GameState.Playing ||
+                                    _engine.GameManager.State == GameState.Post));
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 PhotonNetwork.Disconnect();

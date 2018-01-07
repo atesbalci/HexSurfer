@@ -4,7 +4,7 @@ using System.Linq;
 using Game.Utility;
 using UniRx;
 
-namespace Game
+namespace Game.Models
 {
     public enum GameState
     {

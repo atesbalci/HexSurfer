@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+using Game.Models;
 using Game.Utility;
 using UniRx;
 using UnityEngine;
 
-namespace Game
+namespace Game.Engine
 {
     public class EngineManager : MonoBehaviour
     {

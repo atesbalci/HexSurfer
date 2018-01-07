@@ -2,7 +2,7 @@
 using Game.Utility;
 using UnityEngine;
 
-namespace Game
+namespace Game.Engine
 {
     public class JumpMarker : MonoBehaviour
     {

@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using Game.Engine;
+using Game.Models;
 using Game.Networking;
 using Game.Utility;
 using TMPro;
@@ -8,7 +10,7 @@ using UnityEngine.UI;
 
 namespace Game.Views
 {
-    public class IntermissionView : MonoBehaviour
+    public class ScoresView : MonoBehaviour
     {
         public TextMeshProUGUI Text;
         public Button StartButton;
@@ -25,6 +27,11 @@ namespace Game.Views
 
         private void OnEnable()
         {
+            RefreshNickNameCache();
+        }
+
+        private void RefreshNickNameCache()
+        {
             _nicknameCache.Clear();
             foreach (var player in _engineManager.GameManager.Players)
             {
@@ -34,6 +41,8 @@ namespace Game.Views
 
         private void Update()
         {
+            if(_nicknameCache.Count != PhotonNetwork.playerList.Length)
+                RefreshNickNameCache();
             var pre = _engineManager.GameManager != null && _engineManager.GameManager.State == GameState.Idle && _engineManager.GameManager.RoundsPlayed == 0;
             StartButton.gameObject.SetActive(PhotonNetwork.isMasterClient && pre);
             if (_engineManager.GameManager == null)
@@ -50,7 +59,6 @@ namespace Game.Views
                     str.Append(": ");
                     str.Append(player.Score);
                 }
-
             }
             Text.text = str.ToString();
         }

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Game.Engine;
+using Game.Models;
 using Game.Utility;
 using Photon;
 using UniRx;
@@ -22,9 +25,11 @@ namespace Game.Networking
 
         private EngineManager _engineManager;
         private float _defaultHeight;
+        private Dictionary<PhotonPlayer, int> _playerIdCache;
 
         private void Start()
         {
+            _playerIdCache = new Dictionary<PhotonPlayer, int>();
             _engineManager = GetComponent<EngineManager>();
             while (PhotonNetwork.connectionState != ConnectionState.Disconnected) { }
             PhotonNetwork.ConnectUsingSettings(Application.version);
@@ -85,7 +90,11 @@ namespace Game.Networking
 
         public void Host()
         {
-            PhotonNetwork.CreateRoom("Room " + Random.Range(0, int.MaxValue));
+            var success = false;
+            for (var i = 0; !success; i++)
+            {
+                success = PhotonNetwork.CreateRoom(PhotonNetwork.playerName + "'s Game" + (i > 0 ? " (" + i + ")" : ""));
+            }
         }
 
         public void Join(string room)
@@ -128,6 +137,7 @@ namespace Game.Networking
             _engineManager.GameManager.AddPlayer(gameId, owner.NickName);
             _engineManager.Players[gameId].GetComponent<PhotonView>().TransferOwnership(owner);
             _engineManager.Players[gameId].Init(ReferenceEquals(PhotonNetwork.player, owner));
+            _playerIdCache[owner] = gameId;
         }
 
         [PunRPC]
@@ -158,8 +168,9 @@ namespace Game.Networking
         public override void OnPhotonPlayerDisconnected(PhotonPlayer otherPlayer)
         {
             base.OnPhotonPlayerDisconnected(otherPlayer);
-            var id = _engineManager.Players.First(x => x.GetComponent<PhotonView>().owner.Equals(otherPlayer)).Id;
+            var id = _playerIdCache[otherPlayer];
             _engineManager.PlayerLeft(id);
+            _playerIdCache.Remove(otherPlayer);
         }
 
         // ReSharper disable once UnusedMember.Local

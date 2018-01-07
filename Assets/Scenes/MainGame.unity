@@ -1433,6 +1433,8 @@ MonoBehaviour:
   SpawnPoints:
   - {x: -15, y: 0}
   - {x: 15, y: 0}
+  - {x: 0, y: 10}
+  - {x: 0, y: -10}
   Players:
   - {fileID: 1952005673}
   - {fileID: 1841341282}

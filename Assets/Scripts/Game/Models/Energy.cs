@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace Game
+﻿namespace Game.Models
 {
     public class Energy
     {
@@ -36,7 +34,7 @@ namespace Game
             }
             if (_refillCooldownLeft <= 0)
             {
-                Value = Mathf.MoveTowards(Value, 1.0f, deltaTime * 0.5f);
+                Value = UnityEngine.Mathf.MoveTowards(Value, 1.0f, deltaTime * 0.5f);
             }
         }
     }

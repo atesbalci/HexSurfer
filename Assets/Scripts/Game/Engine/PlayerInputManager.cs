@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Game
+namespace Game.Engine
 {
     public enum ControlInputType
     {

@@ -1,9 +1,10 @@
 ﻿using System;
+using Game.Models;
 using Game.Utility;
 using UniRx;
 using UnityEngine;
 
-namespace Game
+namespace Game.Engine
 {
     [RequireComponent(typeof(PlayerInputManager))]
     public class Player : MonoBehaviour
