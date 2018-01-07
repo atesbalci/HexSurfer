@@ -16,33 +16,15 @@ namespace Game.Views
         public Button StartButton;
         
         private EngineManager _engineManager;
-        private Dictionary<int, string> _nicknameCache;
 
         private void Awake()
         {
             StartButton.onClick.AddListener(() => MessageManager.SendEvent(new BeginGameEvent()));
             _engineManager = FindObjectOfType<EngineManager>();
-            _nicknameCache = new Dictionary<int, string>();
-        }
-
-        private void OnEnable()
-        {
-            RefreshNickNameCache();
-        }
-
-        private void RefreshNickNameCache()
-        {
-            _nicknameCache.Clear();
-            foreach (var player in _engineManager.GameManager.Players)
-            {
-                _nicknameCache.Add(player.Id, _engineManager.Players[player.Id].GetComponent<PhotonView>().owner.NickName);
-            }
         }
 
         private void Update()
         {
-            if(_nicknameCache.Count != PhotonNetwork.playerList.Length)
-                RefreshNickNameCache();
             var pre = _engineManager.GameManager != null && _engineManager.GameManager.State == GameState.Idle && _engineManager.GameManager.RoundsPlayed == 0;
             StartButton.gameObject.SetActive(PhotonNetwork.isMasterClient && pre);
             if (_engineManager.GameManager == null)
@@ -52,8 +34,11 @@ namespace Game.Views
             {
                 if (str.Length > 0)
                     str.AppendLine();
-                var nick = _nicknameCache[player.Id];
-                str.Append(nick.Length > 0 ? nick : " ");
+                str.Append("<color=#");
+                str.Append(ColorUtility.ToHtmlStringRGBA(Player.Colors[player.Id]));
+                str.Append(">");
+                str.Append(player.Name.Length > 0 ? player.Name : " ");
+                str.Append("</color>");
                 if (!pre)
                 {
                     str.Append(": ");

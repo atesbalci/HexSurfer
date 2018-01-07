@@ -16,6 +16,11 @@ namespace Game.Models
         public List<int> Ids { get; set; }
     }
 
+    public class GameOverEvent : GameEvent
+    {
+        public PlayerInfo Winner { get; set; }
+    }
+
     public class PlayerInfo
     {
         public int Id { get; set; }
@@ -120,11 +125,19 @@ namespace Game.Models
                 {
                     case GameState.Post:
                         RoundsPlayed++;
-                        foreach (var player in Players)
+                        if (RoundsPlayed < 5)
                         {
-                            player.Score += player.DefeatOrder * 100;
+                            foreach (var player in Players)
+                            {
+                                player.Score += player.DefeatOrder * 100;
+                            }
+                            Observable.Timer(TimeSpan.FromSeconds(3f)).Subscribe(l => State = GameState.Pre);
                         }
-                        Observable.Timer(TimeSpan.FromSeconds(3f)).Subscribe(l => State = GameState.Pre);
+                        else
+                        {
+                            MessageManager.SendEvent(new GameOverEvent { Winner = Players.OrderByDescending(x => x.Score).First() });
+                            Observable.Timer(TimeSpan.FromSeconds(5f)).Subscribe(l => PhotonNetwork.Disconnect());
+                        }
                         break;
                     case GameState.Playing:
                         foreach (var player in Players)
