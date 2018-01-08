@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Linq;
 using Game.Models;
 using Game.Utility;
 using UniRx;
@@ -11,14 +11,12 @@ namespace Game.Engine
         public HexagonTiler Hexagons;
         public Vector2[] SpawnPoints;
         public Player[] Players;
-        public PeriodicRiser PlayerSpawnIndicatorPrefab;
+        public Bounds Bounds;
 
         [Space(10)]
         public GameObject DeathPrefab;
 
         public GameManager GameManager { get; set; }
-
-        private List<GameObject> _spawnIndicators;
 
         private void OnDrawGizmosSelected()
         {
@@ -26,6 +24,9 @@ namespace Game.Engine
             {
                 Gizmos.DrawSphere(new Vector3(spawnPoint.x, 0, spawnPoint.y), 1);
             }
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireCube(Bounds.center, Bounds.size);
         }
 
         public void Initialize()
@@ -41,23 +42,10 @@ namespace Game.Engine
             {
                 if (ev.State == GameState.Pre)
                 {
-                    _spawnIndicators = new List<GameObject>();
-                    foreach (var player in GameManager.Players)
+                    for (var i = 0; i < Players.Length; i++)
                     {
-                        var ind = Instantiate(PlayerSpawnIndicatorPrefab, SpawnPoints[player.Id], Quaternion.identity);
-                        ind.Id = player.Id;
-                        _spawnIndicators.Add(ind.gameObject);
-                    }
-                }
-                else
-                {
-                    if (_spawnIndicators != null)
-                    {
-                        foreach (var spawnIndicator in _spawnIndicators)
-                        {
-                            Destroy(spawnIndicator);
-                        }
-                        _spawnIndicators = null;
+                        var player = Players[i];
+                        player.transform.position = new Vector3(SpawnPoints[i].x, player.transform.position.y, SpawnPoints[i].y);
                     }
                 }
             });
@@ -77,6 +65,15 @@ namespace Game.Engine
         {
             Players[id].gameObject.SetActive(false);
             GameManager.Players.RemoveAll(x => x.Id == id);
+        }
+
+        private void Update()
+        {
+            var defeateds = Players.Where(x => x.gameObject.activeInHierarchy && !Bounds.Contains(x.transform.position)).Select(x => x.Id).ToList();
+            if (defeateds.Count > 0)
+            {
+                MessageManager.SendEvent(new PlayersDefeatedEvent { Ids = defeateds });
+            }
         }
     }
 }

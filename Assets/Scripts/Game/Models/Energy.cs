@@ -22,6 +22,11 @@
 
         public Energy()
         {
+            Reset();
+        }
+
+        public void Reset()
+        {
             _value = 0;
             _refillCooldownLeft = 0;
         }

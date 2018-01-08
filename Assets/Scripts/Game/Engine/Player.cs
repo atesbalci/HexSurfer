@@ -28,6 +28,7 @@ namespace Game.Engine
         public Energy Energy { get; set; }
         public float JumpProgress { get; set; }
         public int Id { get; set; }
+        public PlayerInputManager Input { get; set; }
 
         public bool Jumping { get { return JumpProgress < JumpDuration; } }
 
@@ -38,18 +39,16 @@ namespace Game.Engine
         private Material _trailMat;
         private float _curSpeed;
         private bool _boosting;
-        private PlayerInputManager _input;
         private bool _initialized;
 
         public void Init(bool isMine)
         {
             _initialized = true;
-            _input = GetComponent<PlayerInputManager>();
-            _input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
+            Input = GetComponent<PlayerInputManager>();
+            Input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
             _defaultY = transform.position.y;
             _trailMat = Trail.material;
             JumpProgress = JumpDuration;
-            _curSpeed = 0;
             Energy = new Energy();
             BoardRenderer.material.color = Colors[Id];
             _hexagons = FindObjectOfType<HexagonTiler>();
@@ -88,12 +87,12 @@ namespace Game.Engine
         {
             if (!_initialized)
                 return;
-            _input.Refresh();
+            Input.Refresh();
             Energy.Update(Time.deltaTime);
             var targetRot = transform.eulerAngles;
-            if (Mathf.Abs(_input.Axis) > 0.01f)
+            if (Mathf.Abs(Input.Axis) > 0.01f)
             {
-                targetRot += Vector3.up * (TurnSpeed * _input.Axis);
+                targetRot += Vector3.up * (TurnSpeed * Input.Axis);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(targetRot), Time.deltaTime * 200);
             }
 
@@ -107,17 +106,17 @@ namespace Game.Engine
                 }
                 transform.position = new Vector3(transform.position.x, y, transform.position.z);
             }
-            else if (_input.Jump && Energy.Value > 0.99f)
+            else if (Input.Jump && Energy.Value > 0.99f)
             {
                 JumpProgress = 0;
                 Energy.Value = 0;
             }
 
-            if (!Jumping && _input.Boost && Energy.Value > 0.2f)
+            if (!Jumping && Input.Boost && Energy.Value > 0.2f)
             {
                 _boosting = true;
             }
-            if (!Jumping && _boosting && _input.Boost && Energy.Value > 0f)
+            if (!Jumping && _boosting && Input.Boost && Energy.Value > 0f)
             {
                 Energy.Value -= Time.deltaTime;
                 _boosting = true;
@@ -173,6 +172,8 @@ namespace Game.Engine
 
         private void OnEnable()
         {
+            _curSpeed = 0;
+            Energy.Reset();
             transform.position = new Vector3(transform.position.x, _defaultY, transform.position.z);
         }
     }
