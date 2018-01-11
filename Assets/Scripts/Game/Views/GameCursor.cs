@@ -54,10 +54,6 @@ namespace Game.Views
                 look.y = 0f;
                 transform.rotation = Quaternion.LookRotation(look, Vector3.up);
             }
-        }
-
-        private void OnEnable()
-        {
             Cursor.visible = false;
         }
 
