@@ -47,4 +47,5 @@ MonoBehaviour:
   - InstantiatePlayer
   - DefeatPlayer
   - CountdownTick
+  - DefeatPlayers
   DisableAutoOpenWizard: 1

@@ -7,7 +7,6 @@ using Game.Utility;
 using Photon;
 using UniRx;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace Game.Networking
 {
@@ -38,13 +37,10 @@ namespace Game.Networking
             {
                 if (PhotonNetwork.isMasterClient)
                 {
-                    foreach (var id in ev.Ids)
-                    {
-                        if (id < _engineManager.Players.Length && _engineManager.Players[id].gameObject.activeInHierarchy)
-                        {
-                            photonView.RPC("DefeatPlayer", PhotonTargets.All, id, _engineManager.GameManager.Players.Count(x => x.Defeated));
-                        }
-                    }
+                    var ids = ev.Ids.Where(x => x >= 0 && x < _engineManager.Players.Length).ToList();
+                    var order = _engineManager.GameManager.Players.Count(x => x.Defeated);
+                    if(ids.Count > 0)
+                        photonView.RPC("DefeatPlayers", PhotonTargets.All, ids[0], ids.Count > 1 ? ids[1] : -1, order);
                 }
             }).AddTo(gameObject);
             MessageManager.ReceiveEvent<StateChangeEvent>().Subscribe(ev =>
@@ -74,17 +70,9 @@ namespace Game.Networking
             PhotonNetwork.JoinLobby();
         }
 
-        private void Update()
+        public override void OnLeftRoom()
         {
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                PhotonNetwork.Disconnect();
-            }
-        }
-
-        public override void OnDisconnectedFromPhoton()
-        {
-            base.OnDisconnectedFromPhoton();
+            base.OnLeftRoom();
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -149,14 +137,15 @@ namespace Game.Networking
                 var pl = _engineManager.Players[player.Id];
                 pl.transform.position = new Vector3(_engineManager.SpawnPoints[player.Id].x, _defaultHeight,
                     _engineManager.SpawnPoints[player.Id].y);
-                pl.gameObject.SetActive(true);
+                pl.SetEnabled(true);
             }
         }
 
         [PunRPC]
-        public void DefeatPlayer(int id, int defeatOrder)
+        public void DefeatPlayers(int id1, int id2, int defeatOrder)
         {
-            _engineManager.DefeatPlayer(id, defeatOrder);
+            var ids = id2 >= 0 ? new[] {id1, id2} : new[] {id1};
+            _engineManager.DefeatPlayers(ids, defeatOrder);
         }
 
         [PunRPC]

@@ -31,6 +31,8 @@ namespace Game.Views
 
         private void Update()
         {
+            if (!_player.Enabled)
+                return;
             transform.rotation = Camera.main.transform.rotation;
             for (var i = 0; i < Indicators.Length; i++)
             {

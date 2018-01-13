@@ -92,23 +92,26 @@ namespace Game.Models
             Players.RemoveAll(x => x.Id == id);
         }
 
-        public void DefeatPlayer(int id, int order)
+        public void DefeatPlayers(int[] ids, int order)
         {
-            var pl = Players.FirstOrDefault(x => x.Id == id);
-            if (pl != null)
+            foreach (var id in ids)
             {
-                pl.Defeated = true;
-                pl.DefeatOrder = order;
-                if (Players.Count(x => !x.Defeated) <= 1)
+                var pl = Players.FirstOrDefault(x => x.Id == id);
+                if (pl != null)
                 {
-                    var undefeated = Players.FirstOrDefault(x => !x.Defeated);
-                    if (undefeated != null)
-                    {
-                        undefeated.Defeated = true;
-                        undefeated.DefeatOrder = Players.Count - 1;
-                    }
-                    State = GameState.Post;
+                    pl.Defeated = true;
+                    pl.DefeatOrder = order;
                 }
+            }
+            if (Players.Count(x => !x.Defeated) <= 1)
+            {
+                var undefeated = Players.FirstOrDefault(x => !x.Defeated);
+                if (undefeated != null)
+                {
+                    undefeated.Defeated = true;
+                    undefeated.DefeatOrder = Players.Count - 1;
+                }
+                State = GameState.Post;
             }
         }
 
@@ -125,18 +128,17 @@ namespace Game.Models
                 {
                     case GameState.Post:
                         RoundsPlayed++;
+                        foreach (var player in Players)
+                        {
+                            player.Score += player.DefeatOrder * 100;
+                        }
                         if (RoundsPlayed < 5)
                         {
-                            foreach (var player in Players)
-                            {
-                                player.Score += player.DefeatOrder * 100;
-                            }
                             Observable.Timer(TimeSpan.FromSeconds(3f)).Subscribe(l => State = GameState.Pre);
                         }
                         else
                         {
                             MessageManager.SendEvent(new GameOverEvent { Winner = Players.OrderByDescending(x => x.Score).First() });
-                            Observable.Timer(TimeSpan.FromSeconds(5f)).Subscribe(l => PhotonNetwork.Disconnect());
                         }
                         break;
                     case GameState.Playing:

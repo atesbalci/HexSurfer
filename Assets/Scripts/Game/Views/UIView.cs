@@ -26,7 +26,7 @@ namespace Game.Views
                                     _engine.GameManager.State == GameState.Post));
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                PhotonNetwork.Disconnect();
+                PhotonNetwork.LeaveRoom();
             }
         }
     }

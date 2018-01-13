@@ -18,12 +18,9 @@ namespace Game.Engine
         public bool Jump { get; set; }
         public bool Boost { get; set; }
 
-        private Plane _plane;
-
         public void Init(ControlInputType controlInputType)
         {
             ControlInputType = controlInputType;
-            _plane = new Plane(Vector3.up, transform.position);
         }
 
         public void Refresh()
@@ -36,7 +33,7 @@ namespace Game.Engine
                     Axis = 0f;
                     float dist;
                     var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    if (_plane.Raycast(ray, out dist))
+                    if (new Plane(Vector3.up, transform.position).Raycast(ray, out dist))
                     {
                         var point = ray.GetPoint(dist);
                         if (Vector3.Distance(transform.position, point) > 0.01f)

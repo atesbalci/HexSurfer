@@ -46,33 +46,38 @@ namespace Game.Engine
                     {
                         var player = Players[i];
                         player.transform.position = new Vector3(SpawnPoints[i].x, player.transform.position.y, SpawnPoints[i].y);
+                        player.SetEnabled(false);
                     }
                 }
             });
         }
 
-        public void DefeatPlayer(int id, int order)
+        public void DefeatPlayers(int[] ids, int order)
         {
-            var ps = Instantiate(DeathPrefab, Players[id].transform.position,
-                Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
-            var main = ps.main;
-            main.startColor = Player.Colors[id];
-            Players[id].gameObject.SetActive(false);
-            GameManager.DefeatPlayer(id, order);
+            foreach (var id in ids)
+            {
+                var ps = Instantiate(DeathPrefab, Players[id].transform.position,
+                    Players[id].transform.rotation).GetComponentInChildren<ParticleSystem>();
+                var main = ps.main;
+                main.startColor = Player.Colors[id];
+                Players[id].SetEnabled(false);
+            }
+            GameManager.DefeatPlayers(ids, order);
         }
 
         public void PlayerLeft(int id)
         {
-            Players[id].gameObject.SetActive(false);
+            Players[id].SetEnabled(false);
             GameManager.Players.RemoveAll(x => x.Id == id);
         }
 
         private void Update()
         {
-            var defeateds = Players.Where(x => x.gameObject.activeInHierarchy && !Bounds.Contains(x.transform.position)).Select(x => x.Id).ToList();
+            var defeateds = Players.Where(x => x.Enabled && x.transform.position.y > -100 && !Bounds.Contains(x.transform.position)).Select(x => x.Id)
+                .ToList();
             if (defeateds.Count > 0)
             {
-                MessageManager.SendEvent(new PlayersDefeatedEvent { Ids = defeateds });
+                MessageManager.SendEvent(new PlayersDefeatedEvent {Ids = defeateds});
             }
         }
     }

@@ -24,7 +24,9 @@ namespace Game.Engine
         public AnimationCurve RiserCurve;
         public float Radius;
         public GameObject JumpMarker;
+        public Transform ManParent;
 
+        public bool Enabled { get; private set; }
         public Energy Energy { get; set; }
         public float JumpProgress { get; set; }
         public int Id { get; set; }
@@ -41,17 +43,27 @@ namespace Game.Engine
         private bool _boosting;
         private bool _initialized;
 
+        private void Start()
+        {
+            _defaultY = transform.position.y;
+            SetEnabled(true);
+            SetEnabled(false);
+        }
+
         public void Init(bool isMine)
         {
             _initialized = true;
             Input = GetComponent<PlayerInputManager>();
             Input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
-            _defaultY = transform.position.y;
             _trailMat = Trail.material;
             JumpProgress = JumpDuration;
             Energy = new Energy();
             BoardRenderer.material.color = Colors[Id];
             _hexagons = FindObjectOfType<HexagonTiler>();
+            foreach (var part in ManParent.GetComponentsInChildren<Renderer>())
+            {
+                part.material.color = Colors[Id];
+            }
         }
 
         public Hexagon CurrentHexagon
@@ -85,7 +97,7 @@ namespace Game.Engine
 
         private void Update()
         {
-            if (!_initialized)
+            if (!Enabled || !_initialized)
                 return;
             Input.Refresh();
             Energy.Update(Time.deltaTime);
@@ -158,23 +170,30 @@ namespace Game.Engine
             JumpMarker.SetActive(Jumping);
         }
 
-        private void OnDisable()
-        {
-            if (_currentRiser != null)
-                _currentRiser.Active = false;
-        }
-
         private void OnDestroy()
         {
             if(_currentRiser != null)
                 _currentRiser.Active = false;
         }
 
-        private void OnEnable()
+        public void SetEnabled(bool b)
         {
-            _curSpeed = 0;
-            Energy.Reset();
-            transform.position = new Vector3(transform.position.x, _defaultY, transform.position.z);
+            if(Enabled == b) 
+                return;
+            Enabled = b;
+            if (Enabled)
+            {
+                _curSpeed = 0;
+                if(Energy != null)
+                    Energy.Reset();
+                transform.position = new Vector3(transform.position.x, _defaultY, transform.position.z);
+            }
+            else
+            {
+                transform.position = new Vector3(0, -1000, 0);
+                if (_currentRiser != null)
+                    _currentRiser.Active = false;
+            }
         }
     }
 }
