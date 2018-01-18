@@ -19,9 +19,10 @@ namespace Game.Views
             _defaultScales = Indicators.Select(x => x.localScale).ToArray();
             _materials = Indicators.Select(x => x.GetComponent<Renderer>().material).ToArray();
             _defaultOutlineWidths = _materials.Select(x => x.GetFloat("_Outline")).ToArray();
+            _player.InitAction += RefreshColor;
         }
 
-        private void OnEnable()
+        private void RefreshColor()
         {
             foreach (var mat in _materials)
             {

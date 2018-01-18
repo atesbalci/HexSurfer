@@ -31,6 +31,7 @@ namespace Game.Engine
         public float JumpProgress { get; set; }
         public int Id { get; set; }
         public PlayerInputManager Input { get; set; }
+        public Action InitAction { get; set; }
 
         public bool Jumping { get { return JumpProgress < JumpDuration; } }
 
@@ -46,6 +47,7 @@ namespace Game.Engine
         private void Start()
         {
             _defaultY = transform.position.y;
+            Energy = new Energy();
             SetEnabled(true);
             SetEnabled(false);
         }
@@ -57,13 +59,14 @@ namespace Game.Engine
             Input.Init(isMine ? ControlInputType.Mouse : ControlInputType.None);
             _trailMat = Trail.material;
             JumpProgress = JumpDuration;
-            Energy = new Energy();
+            Energy.Reset();
             BoardRenderer.material.color = Colors[Id];
             _hexagons = FindObjectOfType<HexagonTiler>();
             foreach (var part in ManParent.GetComponentsInChildren<Renderer>())
             {
                 part.material.color = Colors[Id];
             }
+            InitAction();
         }
 
         public Hexagon CurrentHexagon
