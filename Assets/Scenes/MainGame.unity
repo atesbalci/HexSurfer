@@ -3103,8 +3103,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HexPrefab: {fileID: 1793462906701748, guid: bdde23a64b4a02e4aa488460c14e67b8, type: 2}
   HexSpacing: 0.5
-  Width: 36
-  Height: 107
+  Width: 72
+  Height: 214
   CloseHeight: 200
   FarHeight: 1
 --- !u!4 &1350870887

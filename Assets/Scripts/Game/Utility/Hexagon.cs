@@ -1,11 +1,13 @@
 ﻿using Game.Engine;
+using Helper;
+using UniRx;
 using UnityEngine;
 
 namespace Game.Utility
 {
     public enum HexagonState
     {
-        Rising, Falling, Idle
+        Idle, Falling, Locked
     }
     public class HexOverlapEvent : GameEvent
     {
@@ -24,6 +26,7 @@ namespace Game.Utility
         public Transform Trans { get; set; }
         public Vector3 Position { get; set; }
         public float DefaultHeight { get; set; }
+        public Visibility Visible { get; set; }
 
         private float _currentHeight;
         private int _currentSource;
@@ -70,6 +73,7 @@ namespace Game.Utility
                                 Overlapper = value,
                                 TimeGap = _timeSinceSwitch
                             });
+                            return;
                         }
                         else
                         {
@@ -88,11 +92,12 @@ namespace Game.Utility
 
         public void Init()
         {
-            Trans = transform;
+            Visible = GetComponentInChildren<Visibility>();
+            _rend = GetComponentInChildren<Renderer>();
+            Trans = _rend.transform;
             TargetHeight = Trans.localScale.y;
             _currentHeight = Trans.localScale.y;
             Position = Trans.position;
-            _rend = GetComponentInChildren<Renderer>();
             _currentSource = -1;
             _prop = new MaterialPropertyBlock();
             _defCol = _rend.sharedMaterial.color;
@@ -103,21 +108,24 @@ namespace Game.Utility
 
         public void Refresh()
         {
+            if (State == HexagonState.Locked)
+            {
+                return;
+            }
             if (State != HexagonState.Idle)
             {
                 _timeSinceSwitch += Time.deltaTime;
                 var scale = Trans.localScale;
                 _currentHeight = Mathf.MoveTowards(scale.y, TargetHeight, Time.deltaTime * (_currentHeight > TargetHeight ? FallSpeed : RiseSpeed));
                 Trans.localScale = new Vector3(scale.x, _currentHeight, scale.z);
-                if (State == HexagonState.Falling)
+                if (State == HexagonState.Falling && 
+                    Mathf.Abs(TargetHeight - _currentHeight) < 1)
                 {
-                    if (Mathf.Abs(TargetHeight - _currentHeight) < 1)
-                    {
-                        State = HexagonState.Idle;
-                        CurrentSource = -1;
-                    }
+                    State = HexagonState.Idle;
+                    CurrentSource = -1;
                 }
             }
+            //Color related update
             if (!_noFade && _fade < FadeDuration)
             {
                 _fade += Time.deltaTime;

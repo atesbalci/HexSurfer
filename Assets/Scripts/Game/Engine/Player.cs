@@ -1,7 +1,6 @@
 ﻿using System;
 using Game.Models;
 using Game.Utility;
-using UniRx;
 using UnityEngine;
 
 namespace Game.Engine
@@ -38,7 +37,6 @@ namespace Game.Engine
         private HexagonTiler _hexagons;
         private float _defaultY;
         private Hexagon _currentHexagon;
-        private HexRiser _currentRiser;
         private Material _trailMat;
         private float _curSpeed;
         private bool _boosting;
@@ -74,25 +72,9 @@ namespace Game.Engine
             get { return _currentHexagon; }
             set
             {
-                if (value != CurrentHexagon)
+                if (value)
                 {
-                    if (CurrentHexagon)
-                    {
-                        var riser = _currentRiser;
-                        Observable.Timer(TimeSpan.FromSeconds(0)).Subscribe(lng => riser.Active = false);
-                    }
-
-                    if (value)
-                    {
-                        _currentRiser = new HexRiser
-                        {
-                            Location = value.Position,
-                            Source = Id,
-                            RiserCurve = RiserCurve,
-                            Radius = Radius
-                        };
-                        _hexagons.AddHexRiser(_currentRiser);
-                    }
+                    _hexagons.RadialRise(value.Position, Radius, RiserCurve, Id);
                 }
                 _currentHexagon = value;
             }
@@ -165,18 +147,12 @@ namespace Game.Engine
             if (Physics.Raycast(new Ray(transform.position, Vector3.down), out hit, 100f,
                 LayerMask.GetMask("Hexagon")))
             {
-                CurrentHexagon = !Jumping ? hit.transform.GetComponent<Hexagon>() : null;
+                CurrentHexagon = !Jumping ? _hexagons.ColliderCache[hit.collider] : null;
             }
             var trailColor = _trailMat.GetColor("_TintColor");
             _trailMat.SetColor("_TintColor", new Color(trailColor.r, trailColor.g, trailColor.b, Mathf.Lerp(trailColor.a, 
                 !Jumping ? _boosting ? 1 : 0 : 1, Time.deltaTime * 20)));
             JumpMarker.SetActive(Jumping);
-        }
-
-        private void OnDestroy()
-        {
-            if(_currentRiser != null)
-                _currentRiser.Active = false;
         }
 
         public void SetEnabled(bool b)
@@ -194,8 +170,6 @@ namespace Game.Engine
             else
             {
                 transform.position = new Vector3(0, -1000, 0);
-                if (_currentRiser != null)
-                    _currentRiser.Active = false;
             }
         }
     }

@@ -1,29 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using UniRx;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Game.Utility
 {
-    public class HexRiser
-    {
-        public bool Active { get; set; }
-        public Vector3 Location { get; set; }
-        public int Source { get; set; }
-        public float Radius { get; set; }
-        public AnimationCurve RiserCurve { get; set; }
-
-        public HexRiser()
-        {
-            Active = true;
-            Source = -1;
-        }
-    }
-
     public class HexagonTiler : MonoBehaviour
     {
-        public const float NoiseHeight = 100f;
+        public const float NoiseHeight = 75f;
 
         public GameObject HexPrefab;
         public float HexSpacing;
@@ -33,8 +17,9 @@ namespace Game.Utility
         public float CloseHeight;
         public float FarHeight;
 
+        public Dictionary<Collider, Hexagon> ColliderCache { get; private set; }
+
         private Hexagon[] _hexagons;
-        private List<HexRiser> _risers;
         private float _seed;
 
         private void Awake()
@@ -65,6 +50,7 @@ namespace Game.Utility
 
         public void RefreshHexagons()
         {
+            ColliderCache = new Dictionary<Collider, Hexagon>();
             var hexagons = new List<Hexagon>();
             var childCount = transform.childCount;
             for (var i = 0; i < childCount; i++)
@@ -83,6 +69,7 @@ namespace Game.Utility
                 hexagons.Add(newHex);
                 newHex.DefaultHeight = FarHeight;
                 newHex.Init();
+                ColliderCache.Add(newHex.GetComponent<Collider>(), newHex);
             }
             var xshift = Mathf.Cos(Mathf.PI / 3) * HexSpacing + HexSpacing;
             var zshift = Mathf.Sin(Mathf.PI / 3) * HexSpacing;
@@ -100,50 +87,53 @@ namespace Game.Utility
                     hexagons.Add(newHex);
                     newHex.DefaultHeight = FarHeight;
                     newHex.Init();
+                    ColliderCache.Add(newHex.GetComponent<Collider>(), newHex);
                 }
             }
             _hexagons = hexagons.ToArray();
-            _risers = new List<HexRiser>();
         }
 
-        public void AddHexRiser(HexRiser riser)
+        private void LateUpdate()
         {
-            _risers.Add(riser);
-        }
-
-        private void Update()
-        {
-            for (var i = 0; i < _risers.Count; i++)
-            {
-                if (!_risers[i].Active)
-                {
-                    _risers.RemoveAt(i);
-                    i--;
-                }
-            }
             _seed += Time.deltaTime;
             foreach (var hex in _hexagons)
             {
                 hex.Refresh();
                 hex.TargetHeight = FarHeight;
-                hex.State = HexagonState.Falling;
-                foreach (var riser in _risers)
+                if (hex.State == HexagonState.Idle && hex.Visible.Visible)
                 {
-                    var dist = Vector3.Distance(hex.Position, riser.Location);
+                    var scale = hex.Trans.localScale;
+                    scale.y = Mathf.Max(FarHeight, FarHeight + Mathf.PerlinNoise(_seed + hex.Position.x / 10, _seed + hex.Position.z / 10) * NoiseHeight);
+                    hex.Trans.localScale = scale;
+                }
+            }
+        }
+
+        //private static float DistanceSquared(Vector2 a, Vector2 b)
+        //{
+        //    return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+        //}
+
+        public void RadialRise(Vector3 pos, float radius, AnimationCurve curve, int source, bool locked = false)
+        {
+            var matchingHexagons = Physics.SphereCastAll(pos + Vector3.up * 10f, radius, Vector3.down, 10f + radius,
+                    1 << gameObject.layer)
+                .Select(x => ColliderCache[x.collider]);
+            foreach (var hex in matchingHexagons)
+            {
+                var dist = Vector3.Distance(pos, hex.Trans.position);
+                if (dist <= radius)
+                {
                     hex.TargetHeight = Mathf.Max(hex.TargetHeight,
-                        Mathf.Lerp(FarHeight, CloseHeight, riser.RiserCurve.Evaluate(1 - dist / riser.Radius)));
-                    if (dist < riser.Radius)
+                        Mathf.Lerp(FarHeight, CloseHeight, curve.Evaluate(1 - dist / radius)));
+                    hex.CurrentSource = source;
+                    hex.State = hex.State == HexagonState.Locked ? HexagonState.Locked : HexagonState.Falling;
+                    if (locked)
                     {
-                        hex.CurrentSource = riser.Source;
-                        hex.State = HexagonState.Rising;
-                        hex.TargetHeight += NoiseHeight / 2;
+                        hex.State = HexagonState.Locked;
+                        hex.Trans.localScale = new Vector3(hex.Trans.localScale.x, hex.TargetHeight, hex.Trans.localScale.z);
                     }
                 }
-                if (hex.State != HexagonState.Rising)
-                {
-                    hex.TargetHeight = Mathf.Max(FarHeight, FarHeight + Mathf.PerlinNoise(_seed + hex.Position.x / 10, _seed + hex.Position.z / 10) * NoiseHeight);
-                }
-                hex.Refresh();
             }
         }
     }

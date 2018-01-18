@@ -11,13 +11,7 @@ namespace Game.Engine
 
         private void Start()
         {
-            Hexagons.AddHexRiser(new HexRiser
-            {
-                 Source = 4,
-                 RiserCurve = RiseCurve,
-                 Location = transform.position,
-                 Radius = Radius
-            });
+            Hexagons.RadialRise(transform.position, Radius, RiseCurve, 4, true);
         }
 
         private void OnDrawGizmos()
