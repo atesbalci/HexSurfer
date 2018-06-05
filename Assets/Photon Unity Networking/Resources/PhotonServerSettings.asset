@@ -27,11 +27,15 @@ MonoBehaviour:
   NetworkLogging: 1
   RunInBackground: 1
   RpcList:
+  - Begin
   - Chat
   - ColorRpc
+  - CountdownTick
+  - DefeatPlayers
   - DestroyRpc
   - DoJump
   - Flash
+  - InitializePlayer
   - InstantiateRpc
   - Marco
   - PickupItemInit
@@ -42,10 +46,4 @@ MonoBehaviour:
   - RequestForPickupItems
   - RequestForPickupTimes
   - TaggedPlayer
-  - InitializePlayer
-  - Begin
-  - InstantiatePlayer
-  - DefeatPlayer
-  - CountdownTick
-  - DefeatPlayers
   DisableAutoOpenWizard: 1

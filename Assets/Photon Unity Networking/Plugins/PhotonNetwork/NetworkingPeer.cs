@@ -12,6 +12,7 @@ using System.Reflection;
 using UnityEngine;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using SupportClassPun = ExitGames.Client.Photon.SupportClass;
+using UnityEngine.SceneManagement;
 
 
 
@@ -161,7 +162,7 @@ public enum DisconnectCause
     /// If that file is unavailable or not configured to let the client connect, this exception is thrown.
     /// Photon usually provides this crossdomain file for Unity.
     /// If it fails, read:
-    /// http://doc.exitgames.com/photon-server/PolicyApp
+    /// https://doc.photonengine.com/en-us/onpremise/current/operations/policy-files
     /// </remarks>
     SecurityExceptionOnConnect = StatusCode.SecurityExceptionOnConnect,
 
@@ -437,6 +438,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
 
     /// <summary>For automatic scene syncing, the loaded scene is put into a room property. This is the name of said prop.</summary>
     protected internal const string CurrentSceneProperty = "curScn";
+	protected internal const string CurrentScenePropertyLoadAsync = "curScnLa";
 
     public static bool UsePrefabCache = true;
 
@@ -455,9 +457,13 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
     // Connection setup caching for reconnection
     private string cachedServerAddress;
     private string cachedApplicationName;
-    private ServerConnection cachedProtocolType;
+    private ServerConnection cachedServerType;
 
     // TODO: CAS must be implemented for OfflineMode
+
+	// for asynchronous loading network synched loading.
+	private AsyncOperation _AsyncLevelLoadingOperation;
+
 
     public NetworkingPeer(string playername, ConnectionProtocol connectionProtocol) : base(connectionProtocol)
     {
@@ -507,7 +513,12 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
             protocolPrefix = "wss://";
         }
 
+        if (PhotonNetwork.UseAlternativeUdpPorts && this.TransportProtocol == ConnectionProtocol.Udp)
+        {
+            protocolPort = 27000;
+        }
         string result = string.Format("{0}{1}:{2}", protocolPrefix, NameServerHost, protocolPort);
+
         //Debug.Log("NameServer: " + result);
         return result;
     }
@@ -573,9 +584,9 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
             return false;
         }
 
-        cachedProtocolType = type;
-        cachedServerAddress = serverAddress;
-        cachedApplicationName = string.Empty;
+        this.cachedServerType = type;
+        this.cachedServerAddress = serverAddress;
+        this.cachedApplicationName = string.Empty;
 
         this.SetupProtocol(type);
 
@@ -612,13 +623,13 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         _isReconnecting = true;
 
         PhotonNetwork.SwitchToProtocol(PhotonNetwork.PhotonServerSettings.Protocol);
-        this.SetupProtocol(cachedProtocolType);
+        this.SetupProtocol(this.cachedServerType);
 
         bool connecting = base.Connect(cachedServerAddress, cachedApplicationName, this.TokenForInit);
 
         if (connecting)
         {
-            switch (cachedProtocolType)
+            switch (this.cachedServerType)
             {
             case ServerConnection.NameServer:
                 State = ClientState.ConnectingToNameServer;
@@ -660,7 +671,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
 
         this.SetupProtocol(ServerConnection.NameServer);
 
-        cachedProtocolType = ServerConnection.NameServer;
+        this.cachedServerType = ServerConnection.NameServer;
         cachedServerAddress = this.NameServerAddress;
         cachedApplicationName = "ns";
 
@@ -693,7 +704,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
             return this.CallAuthenticate();
         }
 
-        cachedProtocolType = ServerConnection.NameServer;
+        this.cachedServerType = ServerConnection.NameServer;
         cachedServerAddress = this.NameServerAddress;
         cachedApplicationName = "ns";
 
@@ -712,18 +723,16 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
     {
         ConnectionProtocol protocolOverride = this.TransportProtocol;
 
-        #if UNITY_XBOXONE
+        #if !UNITY_EDITOR && UNITY_XBOXONE
         this.AuthMode = AuthModeOption.Auth;
         if (this.AuthValues == null)
         {
-            this.AuthValues = new AuthenticationValues();
             UnityEngine.Debug.LogError("UNITY_XBOXONE builds must set AuthValues. Set this before calling any Connect method. Refer to the online docs for guidance.");
             throw new Exception("UNITY_XBOXONE builds must set AuthValues.");
         }
         if (this.AuthValues.AuthPostData == null)
         {
             UnityEngine.Debug.LogError("UNITY_XBOXONE builds must use Photon's XBox Authentication and set the XSTS token by calling: PhotonNetwork.AuthValues.SetAuthPostData(xstsToken). Refer to the online docs for guidance.");
-            Debug.Break();
 			throw new Exception("UNITY_XBOXONE builds must use Photon's XBox Authentication.");
         }
         if (this.AuthValues.AuthType != CustomAuthenticationType.Xbox)
@@ -733,8 +742,8 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         }
         if (this.TransportProtocol != ConnectionProtocol.WebSocketSecure)
         {
-            UnityEngine.Debug.LogWarning("UNITY_XBOXONE builds must use WSS (Secure WebSockets) as Transport Protocol. Changing to WSS from your selection: " + this.TransportProtocol);
-            this.TransportProtocol = ConnectionProtocol.WebSocketSecure;
+            UnityEngine.Debug.LogWarning("UNITY_XBOXONE builds must use WSS (Secure WebSockets) as Transport Protocol. Overriding PhotonServerSettings.");
+            protocolOverride = ConnectionProtocol.WebSocketSecure;
         }
         #endif
 
@@ -759,7 +768,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         }
 
         Type socketTcp = null;
-        #if UNITY_XBOXONE
+        #if !UNITY_EDITOR && UNITY_XBOXONE
         socketTcp = Type.GetType("ExitGames.Client.Photon.SocketWebTcpNativeDynamic, Assembly-CSharp", false);
         if (socketTcp == null)
         {
@@ -801,15 +810,6 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         #pragma warning disable 0162    // the library variant defines if we should use PUN's SocketUdp variant (at all)
         if (PhotonPeer.NoSocket)
         {
-            if (this.AuthMode != AuthModeOption.AuthOnceWss || serverType != ServerConnection.NameServer)
-            {
-                if (this.TransportProtocol != ConnectionProtocol.Udp)
-                {
-                    Debug.Log("This Photon3Unity3d.dll only allows UDP. TransportProtocol was: " + this.TransportProtocol + ". SocketImplementation: " + this.SocketImplementation);
-                }
-                protocolOverride = ConnectionProtocol.Udp;
-            }
-
             #if !UNITY_EDITOR && (UNITY_PS3 || UNITY_ANDROID)
             this.SocketImplementationConfig[ConnectionProtocol.Udp] = typeof(SocketUdpNativeDynamic);
             PhotonHandler.PingImplementation = typeof(PingNativeDynamic);
@@ -1007,24 +1007,6 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         return base.OpJoinRandomRoom(opJoinRandomRoomParams);
     }
 
-    /// <summary>
-    /// Operation Leave will exit any current room.
-    /// </summary>
-    /// <remarks>
-    /// This also happens when you disconnect from the server.
-    /// Disconnect might be a step less if you don't want to create a new room on the same server.
-    /// </remarks>
-    /// <returns></returns>
-    public virtual bool OpLeave()
-    {
-        if (this.State != ClientState.Joined)
-        {
-            Debug.LogWarning("Not sending leave operation. State is not 'Joined': " + this.State);
-            return false;
-        }
-
-        return this.OpCustom((byte)OperationCode.Leave, null, true, 0);
-    }
 
     public override bool OpRaiseEvent(byte eventCode, object customEventContent, bool sendReliable, RaiseEventOptions raiseEventOptions)
     {
@@ -1035,6 +1017,19 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
 
         return base.OpRaiseEvent(eventCode, customEventContent, sendReliable, raiseEventOptions);
     }
+
+
+    #if PHOTON_LIB_MIN_4_1_2
+    public override bool OpRaiseEvent(byte eventCode, object customEventContent, RaiseEventOptions raiseEventOptions, SendOptions sendOptions)
+    {
+        if (PhotonNetwork.offlineMode)
+        {
+            return false;
+        }
+
+        return base.OpRaiseEvent(eventCode, customEventContent, raiseEventOptions, sendOptions);
+    }
+    #endif
 
     #endregion
 
@@ -1741,6 +1736,10 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                     {
                         // on the NameServer, authenticate returns the MasterServer address for a region and we hop off to there
                         this.MasterServerAddress = operationResponse[ParameterCode.Address] as string;
+                        if (PhotonNetwork.UseAlternativeUdpPorts && this.TransportProtocol == ConnectionProtocol.Udp)
+                        {
+                            this.MasterServerAddress = this.MasterServerAddress.Replace("5058", "27000").Replace("5055", "27001").Replace("5056", "27002");
+                        }
                         this.DisconnectToReconnect();
                     }
                     else if (this.Server == ServerConnection.MasterServer)
@@ -1847,7 +1846,21 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                 // PUN assumes you fetch the name-server's list of regions to ping them
                 if (PhotonNetwork.PhotonServerSettings.HostType == ServerSettings.HostingOption.BestRegion)
                 {
-                    PhotonHandler.PingAvailableRegionsAndConnectToBest();
+					
+			        CloudRegionCode bestFromPrefs = PhotonHandler.BestRegionCodeInPreferences;
+					if (bestFromPrefs != CloudRegionCode.none && 
+				    this.AvailableRegions.Exists(x => x.Code == bestFromPrefs) 
+				    )
+			        {
+						Debug.Log("Best region found in PlayerPrefs. Connecting to: " + bestFromPrefs);
+						if (!this.ConnectToRegionMaster(bestFromPrefs))
+						{
+							PhotonHandler.PingAvailableRegionsAndConnectToBest();
+						}
+			        }else{
+
+	                    PhotonHandler.PingAvailableRegionsAndConnectToBest();
+					}
                 }
                 break;
 
@@ -1878,6 +1891,10 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                     }
 
                     this.GameServerAddress = (string)operationResponse[ParameterCode.Address];
+                    if (PhotonNetwork.UseAlternativeUdpPorts && this.TransportProtocol == ConnectionProtocol.Udp)
+                    {
+                        this.GameServerAddress = this.GameServerAddress.Replace("5058", "27000").Replace("5055", "27001").Replace("5056", "27002");
+                    }
                     this.DisconnectToReconnect();
                 }
 
@@ -1898,6 +1915,10 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                     }
 
                     this.GameServerAddress = (string)operationResponse[ParameterCode.Address];
+                    if (PhotonNetwork.UseAlternativeUdpPorts && this.TransportProtocol == ConnectionProtocol.Udp)
+                    {
+                        this.GameServerAddress = this.GameServerAddress.Replace("5058", "27000").Replace("5055", "27001").Replace("5056", "27002");
+                    }
                     this.DisconnectToReconnect();
                 }
                 else
@@ -1931,6 +1952,10 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                 string roomName = (string)operationResponse[ParameterCode.RoomName];
                 this.enterRoomParamsCache.RoomName = roomName;
                 this.GameServerAddress = (string)operationResponse[ParameterCode.Address];
+                if (PhotonNetwork.UseAlternativeUdpPorts && this.TransportProtocol == ConnectionProtocol.Udp)
+                {
+                    this.GameServerAddress = this.GameServerAddress.Replace("5058", "27000").Replace("5055", "27001").Replace("5056", "27002");
+                }
                 this.DisconnectToReconnect();
                 break;
             }
@@ -2000,7 +2025,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                     for (int index = 0; index < this.friendListRequested.Length; index++)
                     {
                         FriendInfo friend = new FriendInfo();
-                        friend.Name = this.friendListRequested[index];
+                        friend.UserId = this.friendListRequested[index];
                         friend.Room = roomList[index];
                         friend.IsOnline = onlineList[index];
                         friendList.Insert(index, friend);
@@ -2085,7 +2110,8 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                 {
                     if (this.Server == ServerConnection.NameServer || this.AuthMode == AuthModeOption.Auth)
                     {
-                        this.EstablishEncryption();
+                        if (!PhotonNetwork.offlineMode)
+                            this.EstablishEncryption();
                     }
                 }
                 else
@@ -2569,7 +2595,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                 //ts: each event now contains a single RPC. execute this
                 // Debug.Log("Ev RPC from: " + originatingPlayer);
 
-                this.ExecuteRpc(photonEvent[ParameterCode.Data] as Hashtable, originatingPlayer.ID);
+                this.ExecuteRpc(photonEvent[ParameterCode.Data] as Hashtable, actorNr);
                 break;
 
             case PunEvent.SendSerialize:
@@ -2605,7 +2631,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
                 }
                 else
                 {
-                    PhotonNetwork.LeaveRoom();
+                    PhotonNetwork.LeaveRoom(false);
                 }
 
                 break;
@@ -4562,13 +4588,26 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         return false;
     }
 
+
+
+
     /// <summary>Internally used to detect the current scene and load it if PhotonNetwork.automaticallySyncScene is enabled.</summary>
     internal protected void LoadLevelIfSynced()
     {
-        if (!PhotonNetwork.automaticallySyncScene || PhotonNetwork.isMasterClient || PhotonNetwork.room == null)
+		if (!PhotonNetwork.automaticallySyncScene || PhotonNetwork.isMasterClient || PhotonNetwork.room == null)
         {
             return;
         }
+
+		// we only check if scene is not loading in the background.
+		if (_AsyncLevelLoadingOperation != null) {
+			if (_AsyncLevelLoadingOperation.isDone)
+			{
+				_AsyncLevelLoadingOperation = null;
+			}else{
+				return;
+			}
+		}
 
         // check if "current level" is set in props
         if (!PhotonNetwork.room.CustomProperties.ContainsKey(NetworkingPeer.CurrentSceneProperty))
@@ -4576,21 +4615,38 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
             return;
         }
 
+		// check if we are loading asynchronously
+		bool LoadAsync = PhotonNetwork.room.CustomProperties.ContainsKey (NetworkingPeer.CurrentScenePropertyLoadAsync);
+
         // if loaded level is not the one defined my master in props, load that level
         object sceneId = PhotonNetwork.room.CustomProperties[NetworkingPeer.CurrentSceneProperty];
         if (sceneId is int)
         {
             if (SceneManagerHelper.ActiveSceneBuildIndex != (int)sceneId)
-                PhotonNetwork.LoadLevel((int)sceneId);
+			{
+				if (LoadAsync)
+				{
+					PhotonNetwork.LoadLevelAsync((int)sceneId);
+				}else{
+                	PhotonNetwork.LoadLevel((int)sceneId);
+				}
+			}
         }
         else if (sceneId is string)
         {
             if (SceneManagerHelper.ActiveSceneName != (string)sceneId)
-                PhotonNetwork.LoadLevel((string)sceneId);
+			{
+				if (LoadAsync)
+				{
+					PhotonNetwork.LoadLevelAsync((string)sceneId);
+				}else{
+                	PhotonNetwork.LoadLevel((string)sceneId);
+				}
+			}
         }
     }
-
-    protected internal void SetLevelInPropsIfSynced(object levelId)
+	
+	protected internal void SetLevelInPropsIfSynced(object levelId, bool asyncLoading = false)
     {
         if (!PhotonNetwork.automaticallySyncScene || !PhotonNetwork.isMasterClient || PhotonNetwork.room == null)
         {
@@ -4603,7 +4659,7 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         }
 
         // check if "current level" is already set in props
-        if (PhotonNetwork.room.CustomProperties.ContainsKey(NetworkingPeer.CurrentSceneProperty))
+		if (!asyncLoading && PhotonNetwork.room.CustomProperties.ContainsKey(NetworkingPeer.CurrentSceneProperty))
         {
             object levelIdInProps = PhotonNetwork.room.CustomProperties[NetworkingPeer.CurrentSceneProperty];
             if (levelIdInProps is int && SceneManagerHelper.ActiveSceneBuildIndex == (int)levelIdInProps)
@@ -4622,9 +4678,16 @@ internal class NetworkingPeer : LoadBalancingPeer, IPhotonPeerListener
         else if (levelId is string) setScene[NetworkingPeer.CurrentSceneProperty] = (string)levelId;
         else Debug.LogError("Parameter levelId must be int or string!");
 
+
+		if (asyncLoading) {
+			setScene[NetworkingPeer.CurrentScenePropertyLoadAsync] = true;
+		}
+
         PhotonNetwork.room.SetCustomProperties(setScene);
         this.SendOutgoingCommands();    // send immediately! because: in most cases the client will begin to load and not send for a while
     }
+
+
 
     public void SetApp(string appId, string gameVersion)
     {
